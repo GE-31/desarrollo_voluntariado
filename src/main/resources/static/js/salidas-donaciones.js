@@ -1,6 +1,6 @@
 /* ===================================================================
    SALIDAS DE DONACIONES - JavaScript
-   Buscador AJAX autocompletado, modal, paginación, filtros, CRUD
+   Buscador AJAX autocompletado, modal, paginaciÃ³n, filtros, CRUD
 =================================================================== */
 
 const modalSalida = document.getElementById("modalSalida");
@@ -12,11 +12,11 @@ const tipoSalidaHidden = document.getElementById("tipoSalidaHidden");
 const idDonacionHidden = document.getElementById("idDonacion");
 const actividadDestinoSelect = document.getElementById("actividadDestino");
 const buscarSalidasInput = document.getElementById("buscarSalidas");
-const PAGINA_TAMANO_S = 8;
+const PAGINA_TAMANO_S = 5;
 
-// ═══════════════════════════════════════════════════════
-// AUTOCOMPLETADO: Donación origen con búsqueda AJAX
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// AUTOCOMPLETADO: Donacion origen con busqueda AJAX
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 const buscarDonacionInput = document.getElementById("buscarDonacion");
 const donacionResultados = document.getElementById("donacionResultados");
@@ -50,7 +50,7 @@ function inicializarAutocompletado() {
         }
     });
 
-    // Teclas de navegación
+    // Teclas de navegaciÃ³n
     buscarDonacionInput.addEventListener("keydown", function (e) {
         const items = donacionResultados.querySelectorAll(".autocomplete-item");
         const activeItem = donacionResultados.querySelector(".autocomplete-item.active");
@@ -96,26 +96,22 @@ async function buscarDonacionesAjax(query) {
 
         let html = "";
         data.results.forEach(d => {
-            const isDinero = d.tipoDonacion === "DINERO";
-            const saldoText = isDinero
-                ? `S/ ${Number(d.saldoDisponible).toFixed(2)} disponible`
-                : `${Number(d.saldoDisponible).toFixed(0)} unidades disponibles`;
-            const tipoClass = isDinero ? "dinero" : "especie";
-            const tipoLabel = isDinero ? "DINERO" : "EN ESPECIE";
-
+            const donante = normalizarTextoVisual(d.donante || "");
+            const actividadOrigen = normalizarTextoVisual(d.actividadOrigen || "");
+            const saldoText = `S/ ${Number(d.saldoDisponible).toFixed(2)} disponible`;
             html += `
                 <div class="autocomplete-item" data-donacion='${JSON.stringify(d).replace(/'/g, "&#39;")}'>
                     <div class="ac-item-header">
                         <span class="ac-item-id">#${d.id}</span>
-                        <span class="ac-item-tipo tag ${tipoClass}">${tipoLabel}</span>
+                        <span class="ac-item-tipo tag dinero">DINERO</span>
                     </div>
                     <div class="ac-item-body">
-                        <div class="ac-item-donante"><i class="fa-solid fa-user"></i> ${d.donante}</div>
+                        <div class="ac-item-donante"><i class="fa-solid fa-user"></i> ${donante}</div>
                         <div class="ac-item-saldo"><i class="fa-solid fa-wallet"></i> ${saldoText}</div>
                     </div>
                     <div class="ac-item-footer">
-                        <span class="ac-item-origen"><i class="fa-solid fa-bullhorn"></i> ${d.actividadOrigen}</span>
-                        <span class="ac-item-original">Original: ${isDinero ? 'S/ ' + Number(d.cantidadOriginal).toFixed(2) : d.cantidadOriginal + ' uds'}</span>
+                        <span class="ac-item-origen"><i class="fa-solid fa-bullhorn"></i> ${actividadOrigen}</span>
+                        <span class="ac-item-original">Original: S/ ${Number(d.cantidadOriginal).toFixed(2)}</span>
                     </div>
                 </div>`;
         });
@@ -139,14 +135,12 @@ function seleccionarDonacion(donacion) {
     donacionSeleccionadaData = donacion;
     idDonacionHidden.value = donacion.id;
 
-    const isDinero = donacion.tipoDonacion === "DINERO";
-    const saldoText = isDinero
-        ? `S/ ${Number(donacion.saldoDisponible).toFixed(2)}`
-        : `${Number(donacion.saldoDisponible).toFixed(0)} uds`;
-    donacionSelText.textContent = `#${donacion.id} — ${donacion.donante} — ${saldoText}`;
+    const donante = normalizarTextoVisual(donacion.donante || "");
+    const saldoText = `S/ ${Number(donacion.saldoDisponible).toFixed(2)}`;
+    donacionSelText.textContent = `#${donacion.id} - ${donante} - ${saldoText}`;
     donacionSelBadge.style.display = "flex";
 
-    buscarDonacionInput.value = `#${donacion.id} — ${donacion.donante}`;
+    buscarDonacionInput.value = `#${donacion.id} - ${donante}`;
     buscarDonacionInput.classList.add("has-selection");
     btnLimpiar.style.display = "flex";
 
@@ -156,27 +150,16 @@ function seleccionarDonacion(donacion) {
 
 function actualizarInfoDonacion(donacion) {
     const infoBox = document.getElementById("infoDonacion");
-    const seccionEspecie = document.getElementById("seccionEspecieSalida");
     const labelCantidad = document.getElementById("labelCantidadSalida");
-    const isDinero = donacion.tipoDonacion === "DINERO";
 
-    document.getElementById("infoDonTipo").textContent = donacion.tipoDonacion;
-    document.getElementById("infoDonMonto").textContent = isDinero
-        ? `S/ ${Number(donacion.saldoDisponible).toFixed(2)} disponible (original: S/ ${Number(donacion.cantidadOriginal).toFixed(2)})`
-        : `${Number(donacion.saldoDisponible).toFixed(0)} unidades disponibles (original: ${donacion.cantidadOriginal})`;
-    document.getElementById("infoDonDonante").textContent = donacion.donante;
-    document.getElementById("infoDonActividad").textContent = donacion.actividadOrigen;
+    document.getElementById("infoDonMonto").textContent =
+        `S/ ${Number(donacion.saldoDisponible).toFixed(2)} disponible (original: S/ ${Number(donacion.cantidadOriginal).toFixed(2)})`;
+    document.getElementById("infoDonDonante").textContent = normalizarTextoVisual(donacion.donante || "");
+    document.getElementById("infoDonActividad").textContent = normalizarTextoVisual(donacion.actividadOrigen || "");
     infoBox.style.display = "block";
 
-    if (!isDinero) {
-        tipoSalidaHidden.value = "ESPECIE";
-        labelCantidad.textContent = "Cantidad a distribuir *";
-        seccionEspecie.style.display = "block";
-    } else {
-        tipoSalidaHidden.value = "DINERO";
-        labelCantidad.textContent = "Monto a asignar (S/) *";
-        seccionEspecie.style.display = "none";
-    }
+    tipoSalidaHidden.value = "DINERO";
+    labelCantidad.textContent = "Monto a asignar (S/) *";
 
     const cantidadInput = document.getElementById("cantidadSalida");
     cantidadInput.max = donacion.saldoDisponible;
@@ -190,7 +173,6 @@ function limpiarDonacionSeleccionada() {
     btnLimpiar.style.display = "none";
     donacionSelBadge.style.display = "none";
     document.getElementById("infoDonacion").style.display = "none";
-    document.getElementById("seccionEspecieSalida").style.display = "none";
     document.getElementById("labelCantidadSalida").textContent = "Monto a asignar (S/) *";
     tipoSalidaHidden.value = "DINERO";
     document.getElementById("cantidadSalida").removeAttribute("max");
@@ -202,9 +184,9 @@ function cerrarDropdown() {
     donacionResultados.classList.remove("open");
 }
 
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // MODAL: Abrir / Cerrar
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function abrirModalSalida() {
     formSalida.reset();
@@ -215,7 +197,6 @@ function abrirModalSalida() {
         '<i class="fa-solid fa-arrow-right-from-bracket"></i> Registrar Salida';
     btnGuardarSalida.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Registrar Salida';
     document.getElementById("infoDonacion").style.display = "none";
-    document.getElementById("seccionEspecieSalida").style.display = "none";
     document.getElementById("labelCantidadSalida").textContent = "Monto a asignar (S/) *";
     tipoSalidaHidden.value = "DINERO";
 
@@ -238,20 +219,20 @@ if (modalSalida) {
     });
 }
 
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CARGAR DATOS: Actividades destino
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function cargarActividadesDestino() {
     try {
         const resp = await fetch("salidas-donaciones?accion=actividades");
         const actividades = await resp.json();
 
-        actividadDestinoSelect.innerHTML = '<option value="">Seleccione campaña destino</option>';
+        actividadDestinoSelect.innerHTML = '<option value="">Seleccione campana destino</option>';
         actividades.forEach(a => {
             const opt = document.createElement("option");
             opt.value = a.idActividad;
-            opt.textContent = a.nombre;
+            opt.textContent = normalizarTextoVisual(a.nombre || "");
             actividadDestinoSelect.appendChild(opt);
         });
     } catch (err) {
@@ -259,9 +240,9 @@ async function cargarActividadesDestino() {
     }
 }
 
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // EDITAR SALIDA
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function editarSalida(id) {
     try {
@@ -287,7 +268,7 @@ async function editarSalida(id) {
 
         await cargarActividadesDestino();
 
-        // Obtener saldo disponible de la donación origen
+        // Obtener saldo disponible de la donacion origen
         let saldoData = null;
         try {
             const saldoResp = await fetch(`salidas-donaciones?accion=saldo_donacion&id=${data.idDonacion}`);
@@ -296,13 +277,13 @@ async function editarSalida(id) {
             console.warn("No se pudo obtener saldo:", e);
         }
 
-        // Configurar donación seleccionada (no editable en modo edición)
+        // Configurar donacion seleccionada (no editable en modo edicion)
         const donData = {
             id: data.idDonacion,
-            tipoDonacion: saldoData ? saldoData.tipoDonacion : (data.tipoSalida === "ESPECIE" ? "OBJETO" : "DINERO"),
+            tipoDonacion: "DINERO",
             cantidadOriginal: saldoData ? saldoData.cantidadOriginal : data.donacionCantidad,
             saldoDisponible: saldoData ? (Number(saldoData.saldoDisponible) + data.cantidad) : data.donacionCantidad,
-            donante: data.donanteNombre || "ANÓNIMO",
+            donante: data.donanteNombre || "ANONIMO",
             actividadOrigen: data.actividadNombre || "Origen",
             descripcion: data.donacionDescripcion || ""
         };
@@ -315,31 +296,19 @@ async function editarSalida(id) {
         document.getElementById("cantidadSalida").value = data.cantidad;
         document.getElementById("descripcionSalida").value = data.descripcion || "";
 
-        if (data.tipoSalida === "ESPECIE") {
-            tipoSalidaHidden.value = "ESPECIE";
-            document.getElementById("seccionEspecieSalida").style.display = "block";
-            document.getElementById("labelCantidadSalida").textContent = "Cantidad a distribuir *";
-            if (data.cantidadItem) {
-                document.getElementById("cantidadItemSalida").value = data.cantidadItem;
-            }
-            if (data.idItem) {
-                document.getElementById("idItemSalida").value = data.idItem;
-            }
-        }
-
         modalSalida.style.display = "flex";
     } catch (err) {
         console.error("Error al obtener salida:", err);
-        Notify.error("Error al cargar la información de la salida.");
+        Notify.error("Error al cargar la informacion de la salida.");
     }
 }
 
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // ANULAR SALIDA
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function anularSalida(id) {
-    const motivo = prompt("Motivo de anulación:", "Anulación manual");
+    const motivo = prompt("Motivo de anulacion:", "Anulacion manual");
     if (motivo === null) return;
 
     try {
@@ -357,16 +326,16 @@ async function anularSalida(id) {
         }
     } catch (err) {
         console.error("Error al anular salida:", err);
-        Notify.error("Error de conexión al anular la salida.");
+        Notify.error("Error de conexion al anular la salida.");
     }
 }
 
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CAMBIAR ESTADO
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 async function cambiarEstadoSalida(id, estado) {
-    const ok = await Notify.confirm(`¿Cambiar estado a "${estado}"?`, '', { variant: 'info', okText: 'Sí, confirmar' });
+    const ok = await Notify.confirm(`Cambiar estado a "${estado}"?`, "", { variant: "info", okText: "Si, confirmar" });
     if (!ok) return;
 
     try {
@@ -384,33 +353,31 @@ async function cambiarEstadoSalida(id, estado) {
         }
     } catch (err) {
         console.error("Error al cambiar estado:", err);
-        Notify.error("Error de conexión al cambiar el estado.");
+        Notify.error("Error de conexion al cambiar el estado.");
     }
 }
 
-// ═══════════════════════════════════════════════════════
-// FILTROS Y BÚSQUEDA (tabla principal)
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// FILTROS Y BÃšSQUEDA (tabla principal)
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function filtrarSalidas() {
     const texto = (buscarSalidasInput?.value || "").toLowerCase().trim();
-    const filtroTipo = document.getElementById("filtroTipo")?.value || "";
     const filtroEstado = document.getElementById("filtroEstado")?.value || "";
     const filas = document.querySelectorAll("#tbodySalidas .salida-row");
 
     filas.forEach(fila => {
         const contenido = fila.textContent.toLowerCase();
-        const tipo = fila.dataset.tipo || "";
         const estado = fila.dataset.estado || "";
 
         let visible = true;
         if (texto && !contenido.includes(texto)) visible = false;
-        if (filtroTipo && tipo !== filtroTipo) visible = false;
         if (filtroEstado && estado !== filtroEstado) visible = false;
 
-        fila.style.display = visible ? "" : "none";
+        fila.dataset.filtroVisible = visible ? "1" : "0";
     });
 
+    paginaActualS = 1;
     paginacionSalidas();
 }
 
@@ -418,15 +385,15 @@ if (buscarSalidasInput) {
     buscarSalidasInput.addEventListener("input", filtrarSalidas);
 }
 
-// ═══════════════════════════════════════════════════════
-// PAGINACIÓN CLIENT-SIDE
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// PAGINACIÃ“N CLIENT-SIDE
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 let paginaActualS = 1;
 
 function paginacionSalidas() {
     const filas = Array.from(document.querySelectorAll("#tbodySalidas .salida-row"))
-        .filter(f => f.style.display !== "none");
+        .filter(f => (f.dataset.filtroVisible || "1") === "1");
     const totalPaginas = Math.ceil(filas.length / PAGINA_TAMANO_S) || 1;
     const paginacionDiv = document.getElementById("salidasPaginacion");
     const textoEl = document.getElementById("textoPaginacionSalidas");
@@ -440,12 +407,35 @@ function paginacionSalidas() {
 
     if (filas.length > PAGINA_TAMANO_S) {
         paginacionDiv.style.display = "flex";
-        textoEl.textContent = `Página ${paginaActualS} de ${totalPaginas}`;
+        textoEl.textContent = `Pagina ${paginaActualS} de ${totalPaginas}`;
         document.getElementById("btnPaginaAnteriorS").disabled = paginaActualS <= 1;
         document.getElementById("btnPaginaSiguienteS").disabled = paginaActualS >= totalPaginas;
     } else {
         paginacionDiv.style.display = "none";
     }
+}
+
+function normalizarTextoVisual(texto) {
+    if (!texto) return texto;
+    let limpio = texto;
+    limpio = limpio
+        .replace(/AN.{0,3}NIMO/gi, "ANONIMO")
+        .replace(/campa.{0,3}a/gi, "campana")
+        .replace(/Ã¡/g, "a")
+        .replace(/Ã©/g, "e")
+        .replace(/Ã­/g, "i")
+        .replace(/Ã³/g, "o")
+        .replace(/Ãº/g, "u")
+        .replace(/Ã±/g, "n")
+        .replace(/Â/g, "")
+        .replace(/�/g, "");
+    return limpio;
+}
+
+function corregirTextosRotos() {
+    document.querySelectorAll("#tbodySalidas td, #tbodySalidas span, #actividadDestino option").forEach(el => {
+        el.textContent = normalizarTextoVisual(el.textContent);
+    });
 }
 
 document.getElementById("btnPaginaAnteriorS")?.addEventListener("click", () => {
@@ -456,9 +446,9 @@ document.getElementById("btnPaginaSiguienteS")?.addEventListener("click", () => 
     paginacionSalidas();
 });
 
-// ═══════════════════════════════════════════════════════
-// VALIDACIÓN ANTES DE ENVIAR
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// VALIDACIÃ“N ANTES DE ENVIAR
+// VALIDACION ANTES DE ENVIAR
 
 if (formSalida) {
     formSalida.addEventListener("submit", function (e) {
@@ -468,14 +458,14 @@ if (formSalida) {
 
         if (!donacionId) {
             e.preventDefault();
-            Notify.warning("Debe buscar y seleccionar una donación origen.");
+            Notify.warning("Debe buscar y seleccionar una donacion origen.");
             buscarDonacionInput.focus();
             return false;
         }
 
         if (!actividad) {
             e.preventDefault();
-            Notify.warning("Debe seleccionar una campaña/actividad destino.");
+            Notify.warning("Debe seleccionar una campana/actividad destino.");
             return false;
         }
 
@@ -484,30 +474,29 @@ if (formSalida) {
             Notify.warning("La cantidad debe ser mayor a 0.");
             return false;
         }
-
         // Validar que el monto no exceda el saldo disponible
         if (donacionSeleccionadaData && donacionSeleccionadaData.saldoDisponible) {
             const saldo = parseFloat(donacionSeleccionadaData.saldoDisponible);
             if (cantidad > saldo) {
                 e.preventDefault();
-                const isDinero = donacionSeleccionadaData.tipoDonacion === "DINERO";
-                const msg = isDinero
-                    ? `El monto S/ ${cantidad.toFixed(2)} excede el saldo disponible de S/ ${saldo.toFixed(2)}.`
-                    : `La cantidad ${cantidad} excede el saldo disponible de ${saldo} unidades.`;
+                const msg = `El monto S/ ${cantidad.toFixed(2)} excede el saldo disponible de S/ ${saldo.toFixed(2)}.`;
                 Notify.warning(msg);
                 return false;
             }
         }
 
+
         buscarDonacionInput.disabled = false;
     });
 }
 
-// ═══════════════════════════════════════════════════════
-// INICIALIZACIÓN
-// ═══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// INICIALIZACION
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 document.addEventListener("DOMContentLoaded", function () {
     inicializarAutocompletado();
-    paginacionSalidas();
+    filtrarSalidas();
+    corregirTextosRotos();
 });
+
