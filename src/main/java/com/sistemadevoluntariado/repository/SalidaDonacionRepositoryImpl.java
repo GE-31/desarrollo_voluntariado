@@ -25,7 +25,27 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
     @SuppressWarnings("unchecked")
     public List<SalidaDonacion> listar() {
         try {
-            List<Object[]> rows = em.createNativeQuery("CALL sp_listar_salidas_donaciones()")
+            // Se lista incluyendo estados CONFIRMADO y ANULADO para permitir filtrado en UI.
+            List<Object[]> rows = em.createNativeQuery(
+                    "SELECT " +
+                    "s.id_salida, s.id_donacion, s.id_actividad, s.tipo_salida, s.cantidad, s.descripcion, " +
+                    "s.id_item, s.cantidad_item, s.id_usuario_registro, s.registrado_en, s.estado, " +
+                    "d.cantidad AS donacion_cantidad, td.nombre AS tipo_donacion_nombre, " +
+                    "a.nombre AS actividad_nombre, " +
+                    "CONCAT(u.nombres, ' ', u.apellidos) AS usuario_registro, " +
+                    "ii.nombre AS item_nombre, ii.unidad_medida AS item_unidad_medida, " +
+                    "COALESCE(dn.nombre, 'ANONIMO') AS donante_nombre, " +
+                    "s.motivo_anulacion, s.anulado_en, d.descripcion AS donacion_descripcion " +
+                    "FROM salida_donacion s " +
+                    "INNER JOIN donacion d ON d.id_donacion = s.id_donacion " +
+                    "INNER JOIN tipo_donacion td ON td.id_tipo_donacion = d.id_tipo_donacion " +
+                    "INNER JOIN actividades a ON a.id_actividad = s.id_actividad " +
+                    "INNER JOIN usuario u ON u.id_usuario = s.id_usuario_registro " +
+                    "LEFT JOIN inventario_item ii ON ii.id_item = s.id_item " +
+                    "LEFT JOIN donacion_donante dd ON dd.id_donacion = d.id_donacion " +
+                    "LEFT JOIN donante dn ON dn.id_donante = dd.id_donante " +
+                    "WHERE s.estado IN ('CONFIRMADO', 'ANULADO') " +
+                    "ORDER BY s.registrado_en DESC")
                     .getResultList();
             List<SalidaDonacion> lista = new ArrayList<>();
             for (Object[] row : rows) lista.add(mapear(row));

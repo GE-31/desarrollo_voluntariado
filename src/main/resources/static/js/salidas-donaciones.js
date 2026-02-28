@@ -392,20 +392,25 @@ if (buscarSalidasInput) {
 let paginaActualS = 1;
 
 function paginacionSalidas() {
-    const filas = Array.from(document.querySelectorAll("#tbodySalidas .salida-row"))
-        .filter(f => (f.dataset.filtroVisible || "1") === "1");
-    const totalPaginas = Math.ceil(filas.length / PAGINA_TAMANO_S) || 1;
+    const todasLasFilas = Array.from(document.querySelectorAll("#tbodySalidas .salida-row"));
+    const filasVisibles = todasLasFilas.filter(f => (f.dataset.filtroVisible || "1") === "1");
+    const totalPaginas = Math.ceil(filasVisibles.length / PAGINA_TAMANO_S) || 1;
     const paginacionDiv = document.getElementById("salidasPaginacion");
     const textoEl = document.getElementById("textoPaginacionSalidas");
 
     if (paginaActualS > totalPaginas) paginaActualS = totalPaginas;
 
-    filas.forEach((fila, i) => {
+    // Primero ocultar todo; luego mostrar solo lo que corresponda a la pagina actual.
+    todasLasFilas.forEach(fila => {
+        fila.style.display = "none";
+    });
+
+    filasVisibles.forEach((fila, i) => {
         const pagina = Math.floor(i / PAGINA_TAMANO_S) + 1;
         fila.style.display = pagina === paginaActualS ? "" : "none";
     });
 
-    if (filas.length > PAGINA_TAMANO_S) {
+    if (filasVisibles.length > PAGINA_TAMANO_S) {
         paginacionDiv.style.display = "flex";
         textoEl.textContent = `Pagina ${paginaActualS} de ${totalPaginas}`;
         document.getElementById("btnPaginaAnteriorS").disabled = paginaActualS <= 1;
@@ -433,7 +438,18 @@ function normalizarTextoVisual(texto) {
 }
 
 function corregirTextosRotos() {
-    document.querySelectorAll("#tbodySalidas td, #tbodySalidas span, #actividadDestino option").forEach(el => {
+    // No tocar celdas completas ni contenedores de acciones; eso elimina botones/iconos.
+    const selectoresSeguros = [
+        "#tbodySalidas .origin-donante",
+        "#tbodySalidas .origin-monto",
+        "#tbodySalidas .campana-destino span",
+        "#tbodySalidas .desc-text",
+        "#tbodySalidas td:nth-child(5)", // Registrado por
+        "#tbodySalidas td:nth-child(6)", // Fecha
+        "#actividadDestino option"
+    ];
+
+    document.querySelectorAll(selectoresSeguros.join(",")).forEach(el => {
         el.textContent = normalizarTextoVisual(el.textContent);
     });
 }
