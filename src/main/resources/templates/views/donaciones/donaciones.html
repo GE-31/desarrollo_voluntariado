@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Donaciones - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/donaciones.css}">
+    <link rel="stylesheet" th:href="@{/css/reportes.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+        <div class="donaciones-header">
+            <div>
+                <h1>Gestion de Donaciones</h1>
+                <p>Registra aportes externos: dinero o bienes en especie</p>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModal()">
+                <i class="fa-solid fa-circle-plus"></i> Registrar Donacion
+            </button>
+        </div>
+
+        <!-- Alerta de error -->
+        <div th:if="${donacionError != null}" class="alert-error" style="margin:12px 0 0 0;">
+            <span th:text="${donacionError}"></span>
+        </div>
+
+        <!-- Filtro de búsqueda -->
+        <div class="donaciones-filtros">
+            <label for="buscarDonaciones">Buscar</label>
+            <input type="text" id="buscarDonaciones" placeholder="Tipo, descripcion, donante, actividad o registrado por">
+        </div>
+
+        <!-- Tabla -->
+        <div class="donaciones-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Tipo de Donacion</th>
+                        <th>Cantidad</th>
+                        <th>Descripcion</th>
+                        <th>Donante</th>
+                        <th>Actividad</th>
+                        <th>Registrado por</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyDonaciones">
+                    <th:block th:if="${donaciones != null and !donaciones.empty}">
+                    <tr th:each="d : ${donaciones}">
+                        <!-- Tipo -->
+                        <td>
+                            <span class="tag"
+                                  th:classappend="${d.tipoDonacion == 'DINERO' ? 'dinero' : 'objeto'}"
+                                  th:text="${d.tipoDonacion == 'DINERO' ? 'DINERO' : 'EN ESPECIE'}">DINERO</span>
+                        </td>
+                        <!-- Tipo de Donación (subtipo) -->
+                        <td>
+                            <span th:text="${d.subtipoDonacion != null ? d.subtipoDonacion : '—'}">—</span>
+                        </td>
+                        <!-- Cantidad -->
+                        <td>
+                            <th:block th:if="${d.tipoDonacion == 'DINERO'}">
+                                <strong th:text="'S/ ' + ${d.cantidad}"></strong>
+                            </th:block>
+                            <th:block th:if="${d.tipoDonacion != 'DINERO'}">
+                                <strong>
+                                    <span th:text="${d.cantidadItem != null ? d.cantidadItem : d.cantidad}"></span>
+                                    <span th:text="${d.itemUnidadMedida != null ? d.itemUnidadMedida : 'unidad'}"></span>
+                                </strong>
+                                <div class="item-obs" th:text="${d.itemNombre != null ? d.itemNombre : 'Item no especificado'}"></div>
+                            </th:block>
+                        </td>
+                        <!-- Descripcion -->
+                        <td th:text="${d.descripcion}"></td>
+                        <!-- Donante -->
+                        <td>
+                            <span th:text="${d.donanteNombre != null ? d.donanteNombre : 'ANONIMO'}"></span>
+                        </td>
+                        <!-- Actividad -->
+                        <td th:text="${d.actividad}"></td>
+                        <!-- Registrado por -->
+                        <td th:text="${d.usuarioRegistro}"></td>
+                        <!-- Fecha -->
+                        <td th:text="${d.registradoEn}"></td>
+                        <!-- Estado -->
+                        <td th:with="estadoRaw=${d.estado},
+                                     estadoDisplay=${estadoRaw == null or estadoRaw.trim() == '' ? 'PENDIENTE' : (estadoRaw.toUpperCase() == 'ACTIVO' ? 'CONFIRMADO' : estadoRaw.toUpperCase())},
+                                     badgeClass=${estadoDisplay == 'CONFIRMADO' ? 'success' : (estadoDisplay == 'ANULADO' or estadoDisplay == 'RECHAZADO' ? 'error' : 'warning')}">
+                            <span class="badge" th:classappend="${badgeClass}" th:text="${estadoDisplay}">PENDIENTE</span>
+                        </td>
+                        <!-- Acciones -->
+                        <td class="acciones-cell">
+                            <!-- Editar -->
+                            <button class="btn-icon edit" th:onclick="'editarDonacion(' + ${d.idDonacion} + ')'" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <!-- PENDIENTE: Confirmar + Anular -->
+                            <th:block th:if="${d.estado == null or d.estado.toUpperCase() == 'PENDIENTE'}">
+                                <button class="btn-icon enable" th:onclick="'cambiarEstadoDonacion(' + ${d.idDonacion} + ', \'CONFIRMADO\')'" title="Confirmar">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-icon cancel" th:onclick="'cambiarEstadoDonacion(' + ${d.idDonacion} + ', \'ANULADO\')'" title="Anular">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            </th:block>
+                            <!-- CONFIRMADO/ACTIVO: solo Anular -->
+                            <th:block th:if="${d.estado != null and (d.estado.toUpperCase() == 'CONFIRMADO' or d.estado.toUpperCase() == 'ACTIVO')}">
+                                <button class="btn-icon cancel" th:onclick="'cambiarEstadoDonacion(' + ${d.idDonacion} + ', \'ANULADO\')'" title="Anular">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            </th:block>
+                        </td>
+                    </tr>
+                    </th:block>
+                    <tr th:if="${donaciones == null or donaciones.empty}">
+                        <td colspan="10" class="no-data">No hay donaciones registradas</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        <div id="donacionesPaginacion" class="table-pagination" style="display:none;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnPaginaAnterior">Anterior</button>
+            <span id="textoPaginacionDonaciones"></span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnPaginaSiguiente">Siguiente</button>
+        </div>
+    </div>
+</main>
+
+<!-- ============================================================
+     MODAL REGISTRAR / EDITAR DONACIÓN
+============================================================ -->
+<div id="modalDonacion" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2 id="tituloModal">Registrar Donacion</h2>
+                    <p>Ingresa la informacion de la donacion</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModal()">&#10005;</button>
+            </div>
+
+            <form id="formDonacion" th:action="@{/donaciones}" method="POST">
+                <input type="hidden" id="idDonacion" name="idDonacion">
+                <input type="hidden" id="accionDonacion" name="accion" value="registrar">
+                <input type="hidden" id="motivoEdicion" name="motivoEdicion">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tipo de Donacion *</label>
+                        <select id="tipoDonacion" name="tipoDonacion" class="form-input" required onchange="onTipoDonacionChange()">
+                            <option value="">Seleccione</option>
+                            <option value="1">Dinero</option>
+                            <option value="2">En especie (item para inventario)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo de Donación (detalle) *</label>
+                        <select id="subtipoDonacion" name="subtipoDonacion" class="form-input" required>
+                            <option value="">Seleccione primero el tipo</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label id="labelCantidad">Cantidad *</label>
+                        <input type="number" id="cantidad" name="cantidad" class="form-input" min="0.01" step="0.01" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Descripcion *</label>
+                        <textarea id="descripcion" name="descripcion" class="form-textarea" required></textarea>
+                    </div>
+
+                    <!-- Sección Donante -->
+                    <section class="form-group full-width donation-mode-box">
+                        <div class="inventory-section-title">
+                            <i class="fa-solid fa-user"></i>
+                            <span>Donante</span>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>
+                                    <input type="checkbox" id="donacionAnonima" name="donacionAnonima" value="1">
+                                    Donacion anonima
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Buscador de donante registrado -->
+                        <div id="buscarDonanteSection" class="form-grid" style="margin-bottom:12px;">
+                            <div class="form-group full-width" style="position:relative;">
+                                <label><i class="fa-solid fa-magnifying-glass"></i> Buscar donante registrado</label>
+                                <input type="text" id="buscarDonanteInput" class="form-input" placeholder="Buscar por nombre, DNI o RUC..." autocomplete="off">
+                                <div id="buscarDonanteResultados" class="donante-search-results" style="display:none;"></div>
+                                <div id="donanteSeleccionadoInfo" class="donante-selected-info" style="display:none;">
+                                    <span id="donanteSeleccionadoTexto"></span>
+                                    <button type="button" class="btn-donante-clear" onclick="limpiarDonanteSeleccionado()" title="Quitar seleccion">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <small style="color:#6b7280; margin-top:4px; display:block;">Si el donante no esta registrado, ingresa el DNI/RUC debajo y se buscara en la API</small>
+                            </div>
+                        </div>
+
+                        <div id="donanteFields" class="form-grid">
+                            <div class="form-group">
+                                <label>Tipo de donante *</label>
+                                <select id="tipoDonante" name="tipoDonante" class="form-input">
+                                    <option value="PERSONA">Persona</option>
+                                    <option value="EMPRESA">Empresa</option>
+                                    <option value="GRUPO">Grupo</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label id="labelIdent">DNI</label>
+                                <input type="text" id="dniDonante" name="dniDonante" class="form-input" maxlength="20" placeholder="Requerido para Persona">
+                            </div>
+                            <div class="form-group">
+                                <label id="labelNombreDonante">Nombre del donante *</label>
+                                <input type="text" id="nombreDonante" name="nombreDonante" class="form-input" maxlength="150" placeholder="Nombre o razon social">
+                                <div id="identLookupStatus" style="font-size:12px;color:#6b7280;margin-top:6px;"></div>
+                            </div>
+                            <div class="form-group">
+                                <label>Correo</label>
+                                <input type="email" id="correoDonante" name="correoDonante" class="form-input" maxlength="100">
+                            </div>
+                            <div class="form-group">
+                                <label>Telefono</label>
+                                <input type="text" id="telefonoDonante" name="telefonoDonante" class="form-input" maxlength="30">
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Sección Especie / Inventario -->
+                    <section id="seccionEspecie" class="form-group full-width donation-mode-box" style="display:none;">
+                        <div class="inventory-section-title">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            <span>Impacto en Inventario</span>
+                        </div>
+                        <p class="inventory-help">
+                            Toda donacion en especie genera una entrada de stock en inventario.
+                        </p>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label>Item del inventario *</label>
+                                <div class="input-with-action">
+                                    <select id="idItem" name="idItem" class="form-input">
+                                        <option value="">Seleccione item del inventario</option>
+                                    </select>
+                                    <button type="button" class="btn-quick-add" onclick="abrirModalNuevoItemRapido()" title="Crear nuevo item">
+                                        <i class="fa-solid fa-plus"></i> Nuevo
+                                    </button>
+                                </div>
+                                <div id="noItemsNotice" class="alert-info" style="display:none; margin-top:8px;">No hay items activos en el inventario. Crea un item desde <a th:href="@{/inventario}">Inventario</a> antes de registrar donaciones en especie.</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="form-group full-width">
+                        <label>Actividad *</label>
+                        <select id="actividad" name="actividad" class="form-input" required>
+                            <option value="">Seleccione actividad</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" id="btnGuardarDonacion" class="btn btn-primary">Registrar donacion</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     MODAL RÁPIDO: Crear item desde Donaciones
+============================================================ -->
+<div id="modalNuevoItemRapido" class="modal-overlay" style="display:none; z-index:3500;">
+    <div class="modal-container" style="max-width:520px;">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2><i class="fa-solid fa-boxes-stacked"></i> Nuevo Item Base</h2>
+                    <p>Crear item rapidamente para esta donacion</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModalNuevoItemRapido()">&#10005;</button>
+            </div>
+            <form id="formNuevoItemRapido" onsubmit="guardarItemRapido(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nombre del item *</label>
+                        <input type="text" id="qi_nombre" class="form-input" required placeholder="Ej: Arroz, Frazada...">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoria *</label>
+                        <select id="qi_categoria" class="form-input" required>
+                            <option value="">Seleccione</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Unidad de medida *</label>
+                        <select id="qi_unidad" class="form-input" required>
+                            <option value="">Seleccione</option>
+                            <option value="unidad">Unidad</option>
+                            <option value="kg">Kg</option>
+                            <option value="litro">Litro</option>
+                            <option value="caja">Caja</option>
+                            <option value="paquete">Paquete</option>
+                            <option value="lata">Lata</option>
+                            <option value="botella">Botella</option>
+                            <option value="__OTRO__">Otro (especificar)</option>
+                        </select>
+                        <input type="text" id="qi_unidadOtro" class="form-input" maxlength="30" placeholder="Especifique unidad" style="display:none; margin-top:8px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock minimo *</label>
+                        <input type="number" id="qi_stockMinimo" class="form-input" step="0.01" min="0" value="10" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Observacion</label>
+                        <textarea id="qi_observacion" class="form-textarea" rows="2" placeholder="Opcional"></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalNuevoItemRapido()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarItemRapido">
+                        <i class="fa-solid fa-check"></i> Crear y seleccionar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/donaciones.js}"></script>
+<script th:src="@{/js/reportes.js}"></script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuarios - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/usuarios.css}">
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+        <!-- Header -->
+        <div class="usuarios-header">
+            <div>
+                <h1>Gestión de Usuarios</h1>
+                <p>Administra los usuarios, roles y permisos del sistema</p>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalCrear()">
+                <i class="fa-solid fa-plus"></i> Crear Usuario
+            </button>
+        </div>
+
+        <!-- Filtros -->
+        <div class="usuarios-filtros">
+            <div class="filtro-item">
+                <label>Correo</label>
+                <input type="text" id="filtroCorreo" placeholder="Filtrar por correo...">
+            </div>
+            <div class="filtro-item">
+                <label>Estado</label>
+                <select id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="ACTIVO">Activo</option>
+                    <option value="INACTIVO">Inactivo</option>
+                </select>
+            </div>
+            <div class="filtro-item">
+                <label>Fecha creación</label>
+                <input type="date" id="filtroFecha">
+            </div>
+            <div class="filtro-actions">
+                <button class="btn btn-secondary" onclick="limpiarFiltros()">
+                    <i class="fa-solid fa-eraser"></i> Limpiar
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="usuarios-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Correo</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Creado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="usuarios-tbody">
+                    <tr><td colspan="6" class="text-center" style="padding:2rem; color:#999;">Cargando usuarios...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        <div class="pagination-wrapper" id="paginacionUsuarios" style="display:none;">
+            <div class="pagination-info-text" id="paginacionInfo"></div>
+            <div class="pagination-nav">
+                <button class="pg-btn" id="btnPrevUsr" onclick="cambiarPagina(-1)" disabled>
+                    &#8592; <span class="pg-label">Anterior</span>
+                </button>
+                <div class="pg-numbers" id="paginacionPages"></div>
+                <button class="pg-btn" id="btnNextUsr" onclick="cambiarPagina(1)" disabled>
+                    <span class="pg-label">Siguiente</span> &#8594;
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ===================== MODAL USUARIO ===================== -->
+<div id="modalUsuario" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div class="modal-header-content">
+                    <h2 id="modalTitulo" class="modal-title">Crear Usuario</h2>
+                    <p id="modalSubtitulo" class="modal-subtitle">Ingresa la información del nuevo usuario</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModal()" title="Cerrar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="formUsuario" onsubmit="guardarUsuario(event)" class="modal-form" style="max-height:70vh; overflow-y:auto;">
+                <input type="hidden" id="usuarioId">
+
+                <!-- Campos de creación (ocultos en modo edición) -->
+                <div id="camposCreacion" class="form-grid">
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label class="form-label">
+                            <span class="label-text">Voluntario</span><span class="required-indicator">*</span>
+                        </label>
+                        <select id="voluntarioId" class="form-input" style="padding-left:0.75rem;">
+                            <option value="">Seleccione un voluntario</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column:1/-1;">
+                        <label class="form-label">
+                            <span class="label-text">Nombre de usuario</span><span class="required-indicator">*</span>
+                        </label>
+                        <input type="text" id="username" class="form-input" style="padding-left:0.75rem;" placeholder="Ej: jperez" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="label-text">Contraseña</span><span class="required-indicator">*</span>
+                        </label>
+                        <input type="password" id="password" class="form-input" style="padding-left:0.75rem;" placeholder="Mínimo 6 caracteres" minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span class="label-text">Confirmar contraseña</span><span class="required-indicator">*</span>
+                        </label>
+                        <input type="password" id="confirmPassword" class="form-input" style="padding-left:0.75rem;" placeholder="Repita la contraseña">
+                    </div>
+                </div>
+
+                <!-- Sección de permisos -->
+                <div class="user-permissions-section">
+                    <div class="permissions-header">
+                        <div class="perm-title">
+                            <h3><i class="fa-solid fa-shield-halved"></i> Permisos del Sistema</h3>
+                            <span class="perm-count" id="contadorPermisos">0 permisos seleccionados</span>
+                        </div>
+                    </div>
+                    <div class="permissions-list">
+
+                        <!-- Personas -->
+                        <div class="perm-group">
+                            <div class="perm-group-header">
+                                <div class="group-info">
+                                    <i class="fa-solid fa-users" style="color:#667eea;"></i>
+                                    <span class="group-title">Personas</span>
+                                    <span class="group-count" id="count-personas">0/3</span>
+                                </div>
+                                <label class="perm-item"><input type="checkbox" class="select-all" data-group="personas"> Seleccionar todo</label>
+                            </div>
+                            <div class="perm-items">
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="personas" value="1"> Usuarios</label>
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="personas" value="2"> Voluntarios</label>
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="personas" value="3"> Beneficiarios</label>
+                            </div>
+                        </div>
+
+                        <!-- Actividades -->
+                        <div class="perm-group">
+                            <div class="perm-group-header">
+                                <div class="group-info">
+                                    <i class="fa-solid fa-calendar-check" style="color:#f59e0b;"></i>
+                                    <span class="group-title">Actividades</span>
+                                    <span class="group-count" id="count-actividades">0/3</span>
+                                </div>
+                                <label class="perm-item"><input type="checkbox" class="select-all" data-group="actividades"> Seleccionar todo</label>
+                            </div>
+                            <div class="perm-items">
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="actividades" value="4"> Actividades</label>
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="actividades" value="5"> Asistencias</label>
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="actividades" value="6"> Certificados</label>
+                            </div>
+                        </div>
+
+                        <!-- Agenda -->
+                        <div class="perm-group">
+                            <div class="perm-group-header">
+                                <div class="group-info">
+                                    <i class="fa-solid fa-calendar-days" style="color:#10b981;"></i>
+                                    <span class="group-title">Agenda</span>
+                                    <span class="group-count" id="count-agenda">0/1</span>
+                                </div>
+                                <label class="perm-item"><input type="checkbox" class="select-all" data-group="agenda"> Seleccionar todo</label>
+                            </div>
+                            <div class="perm-items">
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="agenda" value="7"> Calendario</label>
+                            </div>
+                        </div>
+
+                        <!-- Donaciones -->
+                        <div class="perm-group">
+                            <div class="perm-group-header">
+                                <div class="group-info">
+                                    <i class="fa-solid fa-hand-holding-heart" style="color:#ef4444;"></i>
+                                    <span class="group-title">Donaciones</span>
+                                    <span class="group-count" id="count-donaciones">0/2</span>
+                                </div>
+                                <label class="perm-item"><input type="checkbox" class="select-all" data-group="donaciones"> Seleccionar todo</label>
+                            </div>
+                            <div class="perm-items">
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="donaciones" value="8"> Donaciones</label>
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="donaciones" value="9"> Inventario</label>
+                            </div>
+                        </div>
+
+                        <!-- Financiera -->
+                        <div class="perm-group">
+                            <div class="perm-group-header">
+                                <div class="group-info">
+                                    <i class="fa-solid fa-coins" style="color:#8b5cf6;"></i>
+                                    <span class="group-title">Financiera</span>
+                                    <span class="group-count" id="count-financiera">0/1</span>
+                                </div>
+                                <label class="perm-item"><input type="checkbox" class="select-all" data-group="financiera"> Seleccionar todo</label>
+                            </div>
+                            <div class="perm-items">
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="financiera" value="10"> Tesorería</label>
+                            </div>
+                        </div>
+
+                        <!-- Informes -->
+                        <div class="perm-group">
+                            <div class="perm-group-header">
+                                <div class="group-info">
+                                    <i class="fa-solid fa-chart-bar" style="color:#06b6d4;"></i>
+                                    <span class="group-title">Informes</span>
+                                    <span class="group-count" id="count-informes">0/1</span>
+                                </div>
+                                <label class="perm-item"><input type="checkbox" class="select-all" data-group="informes"> Seleccionar todo</label>
+                            </div>
+                            <div class="perm-items">
+                                <label class="perm-item"><input type="checkbox" class="perm" data-group="informes" value="11"> Reportes</label>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer-enhanced">
+                    <button type="button" class="btn-cancel" onclick="cerrarModal()"><span>Cancelar</span></button>
+                    <button type="submit" class="btn-submit" id="btnGuardar"><span>Guardar</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/usuarios.js}"></script>
+</body>
+</html>

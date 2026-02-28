@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistencias - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/asistencias.css}">
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+    <main class="main-content">
+        <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+        <div class="content-body">
+
+            <!-- ============================================ -->
+            <!-- VISTA 1: LISTA DE ACTIVIDADES                -->
+            <!-- ============================================ -->
+            <div id="vistaActividades">
+                <div class="asistencias-header">
+                    <div>
+                        <h1>Control de Asistencias</h1>
+                        <p>Selecciona una actividad para gestionar la asistencia de sus participantes</p>
+                    </div>
+                    <div class="header-actions">
+                        <select id="filtroEstadoActividad" class="filtro-select" onchange="filtrarActividades()">
+                            <option value="ACTIVO">Activas</option>
+                            <option value="">Todas</option>
+                            <option value="FINALIZADO">Finalizadas</option>
+                            <option value="CANCELADO">Canceladas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="actividadesGrid" class="actividades-grid">
+                    <div th:each="act : ${actividades}"
+                         class="actividad-card"
+                         th:data-id="${act.idActividad}"
+                         th:data-estado="${act.estado}"
+                         th:data-nombre="${act.nombre}"
+                         th:data-ubicacion="${act.ubicacion}"
+                         th:data-fecha-inicio="${act.fechaInicio}"
+                         th:data-fecha-fin="${act.fechaFin}"
+                         th:data-cupo="${act.cupoMaximo}"
+                         th:data-inscritos="${act.inscritos}"
+                         th:onclick="'seleccionarActividad(' + ${act.idActividad} + ', this)'">
+
+                        <div class="card-header-strip" th:classappend="${#strings.toLowerCase(act.estado)}"></div>
+                        <div class="card-body">
+                            <div class="card-title-row">
+                                <h3 th:text="${act.nombre}">Actividad</h3>
+                                <span class="card-estado-badge" th:classappend="${#strings.toLowerCase(act.estado)}" th:text="${act.estado}">ACTIVO</span>
+                            </div>
+                            <div class="card-meta">
+                                <span class="card-meta-item">
+                                    <span class="meta-icon">&#128197;</span>
+                                    <span th:text="${act.fechaInicio != null ? act.fechaInicio : '---'}">Fecha</span>
+                                    <span th:if="${act.fechaFin != null}"> &mdash; <span th:text="${act.fechaFin}">Fin</span></span>
+                                </span>
+                                <span class="card-meta-item" th:if="${act.ubicacion != null and act.ubicacion != ''}">
+                                    <span class="meta-icon">&#128205;</span>
+                                    <span th:text="${act.ubicacion}">Ubicación</span>
+                                </span>
+                            </div>
+                            <div class="card-footer-info">
+                                <div class="card-cupo">
+                                    <span class="cupo-icon">&#128101;</span>
+                                    <span><strong th:text="${act.inscritos}">0</strong> / <span th:text="${act.cupoMaximo}">0</span> inscritos</span>
+                                </div>
+                                <span class="card-arrow">&#10132;</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="sinActividadesMsg" class="empty-state" style="display:none;">
+                    <span class="empty-icon">&#128203;</span>
+                    <p>No hay actividades que coincidan con el filtro</p>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- VISTA 2: PARTICIPANTES CON ASISTENCIA        -->
+            <!-- ============================================ -->
+            <div id="vistaParticipantes" style="display:none;">
+                <div class="asistencias-header">
+                    <div>
+                        <button class="btn-volver" onclick="volverActividades()">
+                            &#9664; Volver a Actividades
+                        </button>
+                        <h1 id="tituloActividad">Actividad</h1>
+                        <p id="subtituloActividad">Gestiona la asistencia de los participantes</p>
+                    </div>
+                    <div class="header-actions">
+                        <div class="fecha-selector">
+                            <label for="fechaAsistencia" class="fecha-label">Fecha:</label>
+                            <input type="date" id="fechaAsistencia" class="filtro-select fecha-input" onchange="cargarParticipantesConAsistencia()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjetas de resumen -->
+                <div class="stats-cards">
+                    <div class="stat-card total">
+                        <div class="stat-icon">&#128101;</div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="statTotal">0</span>
+                            <span class="stat-label">Participantes</span>
+                        </div>
+                    </div>
+                    <div class="stat-card asistio">
+                        <div class="stat-icon">&#9989;</div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="statAsistio">0</span>
+                            <span class="stat-label">Asistieron</span>
+                        </div>
+                    </div>
+                    <div class="stat-card tardanza">
+                        <div class="stat-icon">&#9200;</div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="statTardanza">0</span>
+                            <span class="stat-label">Tardanzas</span>
+                        </div>
+                    </div>
+                    <div class="stat-card falta">
+                        <div class="stat-icon">&#10060;</div>
+                        <div class="stat-info">
+                            <span class="stat-number" id="statFalta">0</span>
+                            <span class="stat-label">Faltas</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de participantes con asistencia -->
+                <div class="asistencias-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Voluntario</th>
+                                <th>DNI</th>
+                                <th>Carrera</th>
+                                <th>Estado</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Horas</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="participantes-tbody">
+                            <tr id="sinParticipantesRow">
+                                <td colspan="8" style="text-align:center; padding:2rem; color:#999;">Cargando participantes...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                <div id="paginacionParticipantes" style="display:none; justify-content:flex-end; align-items:center; padding:1rem 1.5rem; background:#fff; border-top:1px solid #f0f0f0; border-radius:0 0 12px 12px; gap:0.5rem; font-family:'Inter',sans-serif;">
+                    <span id="paginacionInfo" style="margin-right:auto; font-size:0.85rem; color:#6b7280;"></span>
+                    <button id="btnPrevPart" onclick="cambiarPaginaPart(-1)" disabled style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 0.9rem; border:1px solid #e5e7eb; background:#fff; color:#4b5563; border-radius:8px; font-size:0.82rem; font-weight:500; cursor:pointer;">
+                        &#9664; Anterior
+                    </button>
+                    <div id="paginacionPages" style="display:flex; gap:0.25rem;"></div>
+                    <button id="btnNextPart" onclick="cambiarPaginaPart(1)" disabled style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 0.9rem; border:1px solid #e5e7eb; background:#fff; color:#4b5563; border-radius:8px; font-size:0.82rem; font-weight:500; cursor:pointer;">
+                        Siguiente &#9654;
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MODAL REGISTRAR / EDITAR ASISTENCIA -->
+    <div id="modalAsistencia" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-card">
+                <div class="modal-header-enhanced">
+                    <div class="modal-header-content">
+                        <h2 id="modalTitulo" class="modal-title">Registrar Asistencia</h2>
+                        <p id="modalSubtitulo" class="modal-subtitle">Ingresa los datos de la asistencia</p>
+                    </div>
+                    <button class="modal-close-btn" onclick="cerrarModal()" title="Cerrar">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="formAsistencia" onsubmit="guardarAsistencia(event)" class="modal-form">
+                    <input type="hidden" id="asistenciaId">
+                    <input type="hidden" id="modoEdicion" value="false">
+                    <input type="hidden" id="modalIdVoluntario">
+                    <input type="hidden" id="modalIdActividad">
+                    <input type="hidden" id="modalFecha">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="estado" class="form-label">
+                                <span class="label-text">Estado</span><span class="required-indicator">*</span>
+                            </label>
+                            <div class="input-wrapper">
+                                <select id="estado" name="estado" class="form-input" required onchange="toggleHoras()">
+                                    <option value="">Seleccione estado</option>
+                                    <option value="ASISTIO">Asistió</option>
+                                    <option value="TARDANZA">Tardanza</option>
+                                    <option value="FALTA">Falta</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group" id="grupoHoraEntrada">
+                            <label for="hora_entrada" class="form-label"><span class="label-text">Hora de Entrada</span></label>
+                            <div class="input-wrapper">
+                                <input type="time" id="hora_entrada" name="hora_entrada" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group" id="grupoHoraSalida">
+                            <label for="hora_salida" class="form-label"><span class="label-text">Hora de Salida</span></label>
+                            <div class="input-wrapper">
+                                <input type="time" id="hora_salida" name="hora_salida" class="form-input">
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="observaciones" class="form-label"><span class="label-text">Observaciones</span></label>
+                            <div class="input-wrapper">
+                                <textarea id="observaciones" name="observaciones" class="form-input" rows="3" placeholder="Observaciones adicionales..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer-enhanced">
+                        <button type="button" class="btn-cancel" onclick="cerrarModal()"><span>Cancelar</span></button>
+                        <button type="submit" class="btn-submit"><span>Guardar Asistencia</span></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/asistencias.js}"></script>
+</body>
+</html>

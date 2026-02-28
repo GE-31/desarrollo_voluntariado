@@ -1,0 +1,118 @@
+<!-- Thymeleaf fragment: sidebar -->
+<aside class="sidebar" th:fragment="sidebar"
+       xmlns:th="http://www.thymeleaf.org"
+       th:with="perms=${session.permisosUsuario != null ? session.permisosUsuario : T(java.util.Collections).emptyList()}">
+
+  <link rel="stylesheet" th:href="@{/css/sidebar.css}"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Header con logo -->
+  <div class="sidebar-header">
+    <img th:src="@{/img/logo.png}" alt="Logo Voluntariado" class="logo-img"/>
+  </div>
+
+  <nav class="sidebar-nav">
+
+    <!-- DASHBOARD (siempre visible) -->
+    <a th:href="@{/dashboard}" class="nav-item dashboard-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+      </svg>
+      <span>Dashboard</span>
+    </a>
+
+    <!-- GESTIÓN DE PERSONAS -->
+    <div class="group" th:if="${perms.contains(1) or perms.contains(2) or perms.contains(3)}">
+      <button class="accordion">
+        <span class="group-text">Gestión de Personas</span>
+        <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="panel">
+        <a th:href="@{/usuarios}" class="nav-item" th:if="${perms.contains(1)}"><span>Usuarios</span></a>
+        <a th:href="@{/voluntarios}" class="nav-item" th:if="${perms.contains(2)}"><span>Voluntarios</span></a>
+        <a th:href="@{/beneficiarios}" class="nav-item" th:if="${perms.contains(3)}"><span>Beneficiarios</span></a>
+      </div>
+    </div>
+
+    <!-- GESTIÓN DE ACTIVIDADES -->
+    <div class="group" th:if="${perms.contains(4) or perms.contains(5) or perms.contains(6)}">
+      <button class="accordion">
+        <span class="group-text">Gestión de Actividades</span>
+        <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="panel">
+        <a th:href="@{/actividades}" class="nav-item" th:if="${perms.contains(4)}"><span>Actividades</span></a>
+        <a th:href="@{/asistencias}" class="nav-item" th:if="${perms.contains(5)}"><span>Asistencias</span></a>
+        <a th:href="@{/certificados}" class="nav-item" th:if="${perms.contains(6)}"><span>Certificados</span></a>
+      </div>
+    </div>
+
+    <!-- AGENDA -->
+    <div class="group" th:if="${perms.contains(7)}">
+      <button class="accordion">
+        <span class="group-text">Agenda</span>
+        <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="panel">
+        <a th:href="@{/calendario}" class="nav-item"><span>Calendario</span></a>
+      </div>
+    </div>
+
+    <!-- DONACIONES E INVENTARIO -->
+    <div class="group" th:if="${perms.contains(8) or perms.contains(9)}">
+      <button class="accordion">
+        <span class="group-text">Donaciones e Inventario</span>
+        <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="panel">
+        <a th:href="@{/donaciones}" class="nav-item" th:if="${perms.contains(8)}"><span>Donaciones</span></a>
+        <a th:href="@{/salidas-donaciones}" class="nav-item" th:if="${perms.contains(8)}"><span>Salidas de Donaciones</span></a>
+        <a th:href="@{/inventario}" class="nav-item" th:if="${perms.contains(9)}"><span>Inventario</span></a>
+        <a th:href="@{/salidas-inventario}" class="nav-item" th:if="${perms.contains(9)}"><span>Salidas de Inventario</span></a>
+      </div>
+    </div>
+
+    <!-- GESTIÓN FINANCIERA -->
+    <div class="group" th:if="${perms.contains(10)}">
+      <button class="accordion">
+        <span class="group-text">Gestión Financiera</span>
+        <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="panel">
+        <a th:href="@{/tesoreria}" class="nav-item"><span>Tesorería</span></a>
+      </div>
+    </div>
+
+    <!-- INFORMES -->
+    <div class="group" th:if="${perms.contains(11)}">
+      <button class="accordion">
+        <span class="group-text">Informes</span>
+        <svg class="chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="panel">
+        <a th:href="@{/reportes}" class="nav-item"><span>Reportes</span></a>
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- FOOTER -->
+  <div class="sidebar-footer">
+    <a href="#" class="nav-item logout-item" onclick="logout(event)">
+      <span>Cerrar Sesión</span>
+    </a>
+  </div>
+
+  <script th:src="@{/js/sidebar.js}"></script>
+  <script th:src="@{/js/session-manager.js}"></script>
+  <script th:inline="javascript">
+    function logout(event) {
+      event.preventDefault();
+      window.location.href = [[@{/logout}]];
+    }
+  </script>
+</aside>

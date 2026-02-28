@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Reportes - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/reportes.css}">
+</head>
+<body>
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+    <div class="content-body">
+
+        <!-- ═══ HEADER ═══ -->
+        <div class="reportes-header">
+            <div class="reportes-header-text">
+                <h1>📊 Reportes del Sistema</h1>
+                <p>Panel de indicadores y exportación de datos del Sistema de Voluntariado Universitario</p>
+            </div>
+            <div class="reportes-header-actions">
+                <button id="btnExportGeneral" class="btn-export-general" title="Descargar reporte completo en Excel">
+                    <span class="btn-icon">📥</span> Exportar Reporte General
+                </button>
+            </div>
+        </div>
+
+        <!-- ═══ TARJETAS KPI ═══ -->
+        <div class="kpi-grid" id="kpiGrid">
+            <div class="kpi-card kpi-voluntarios">
+                <div class="kpi-icon">👥</div>
+                <div class="kpi-info">
+                    <span class="kpi-value" id="kpiVoluntarios">—</span>
+                    <span class="kpi-label">Voluntarios</span>
+                    <span class="kpi-sub" id="kpiVolActivos">— activos</span>
+                </div>
+            </div>
+            <div class="kpi-card kpi-beneficiarios">
+                <div class="kpi-icon">🤝</div>
+                <div class="kpi-info">
+                    <span class="kpi-value" id="kpiBeneficiarios">—</span>
+                    <span class="kpi-label">Beneficiarios</span>
+                    <span class="kpi-sub" id="kpiBenActivos">— activos</span>
+                </div>
+            </div>
+            <div class="kpi-card kpi-actividades">
+                <div class="kpi-icon">📋</div>
+                <div class="kpi-info">
+                    <span class="kpi-value" id="kpiActividades">—</span>
+                    <span class="kpi-label">Actividades</span>
+                    <span class="kpi-sub" id="kpiActActivas">— activas</span>
+                </div>
+            </div>
+            <div class="kpi-card kpi-asistencias">
+                <div class="kpi-icon">✅</div>
+                <div class="kpi-info">
+                    <span class="kpi-value" id="kpiAsistencias">—</span>
+                    <span class="kpi-label">Asistencias</span>
+                    <span class="kpi-sub" id="kpiHoras">— hrs voluntarias</span>
+                </div>
+            </div>
+            <div class="kpi-card kpi-donaciones">
+                <div class="kpi-icon">💰</div>
+                <div class="kpi-info">
+                    <span class="kpi-value" id="kpiDonaciones">—</span>
+                    <span class="kpi-label">Donaciones</span>
+                    <span class="kpi-sub" id="kpiRecaudado">S/ 0.00 recaudado</span>
+                </div>
+            </div>
+            <div class="kpi-card kpi-inventario">
+                <div class="kpi-icon">📦</div>
+                <div class="kpi-info">
+                    <span class="kpi-value" id="kpiInventario">—</span>
+                    <span class="kpi-label">Inventario</span>
+                    <span class="kpi-sub" id="kpiStockBajo">— stock bajo</span>
+                </div>
+            </div>
+            <div class="kpi-card kpi-tesoreria">
+                <div class="kpi-icon">🏦</div>
+                <div class="kpi-info">
+                    <span class="kpi-value" id="kpiSaldo">S/ —</span>
+                    <span class="kpi-label">Saldo Tesorería</span>
+                    <span class="kpi-sub" id="kpiIngresos">Ing: S/ 0 | Egr: S/ 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ NAVEGACIÓN POR MÓDULOS ═══ -->
+        <div class="modulos-panel">
+            <div class="modulos-tabs" id="modulosTabs">
+                <button class="mod-tab active" data-modulo="voluntarios">👥 Voluntarios</button>
+                <button class="mod-tab" data-modulo="actividades">📋 Actividades</button>
+                <button class="mod-tab" data-modulo="asistencias">✅ Asistencias</button>
+                <button class="mod-tab" data-modulo="beneficiarios">🤝 Beneficiarios</button>
+                <button class="mod-tab" data-modulo="donaciones">💰 Donaciones</button>
+                <button class="mod-tab" data-modulo="inventario">📦 Inventario</button>
+                <button class="mod-tab" data-modulo="tesoreria">🏦 Tesorería</button>
+            </div>
+            <div class="modulos-toolbar">
+                <input type="text" id="searchTable" class="search-input" placeholder="🔍 Buscar en la tabla...">
+                <button id="btnExportModulo" class="btn-export-modulo" title="Exportar este módulo a Excel">
+                    📥 Exportar módulo
+                </button>
+            </div>
+            <div class="modulos-content" id="modulosContent">
+                <div class="loading-indicator" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <span>Cargando datos...</span>
+                </div>
+            </div>
+            <div class="table-footer" id="tableFooter" style="display:none;">
+                <span id="recordCount">0 registros</span>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script th:inline="javascript">
+    const CTX = /*[[@{/}]]*/ '/sistemadevoluntariado/';
+</script>
+<script th:src="@{/js/reportes.js}"></script>
+</body>
+</html>

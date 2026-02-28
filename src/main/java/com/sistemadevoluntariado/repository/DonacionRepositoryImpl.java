@@ -1,0 +1,245 @@
+package com.sistemadevoluntariado.repository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import com.sistemadevoluntariado.entity.Donacion;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
+public class DonacionRepositoryImpl implements DonacionRepositoryCustom {
+
+    private static final Logger logger = Logger.getLogger(DonacionRepositoryImpl.class.getName());
+
+    @PersistenceContext
+    private EntityManager em;
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<Donacion> listar() {
+        try {
+            List<Object[]> rows = em.createNativeQuery("CALL sp_listar_donaciones_con_detalle()")
+                    .getResultList();
+            List<Donacion> lista = new ArrayList<>();
+            for (Object[] row : rows)
+                lista.add(mapear(row));
+            logger.info("Se listaron " + lista.size() + " donaciones");
+            return lista;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error al listar donaciones", e);
+            return List.of();
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Donacion obtenerPorId(int id) {
+        try {
+            List<Object[]> rows = em.createNativeQuery("CALL sp_obtener_donacion_detalle(?1)")
+                    .setParameter(1, id)
+                    .getResultList();
+            return rows.isEmpty() ? null : mapear(rows.get(0));
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error al obtener donacion por ID", e);
+            return null;
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public boolean guardar(Donacion d) {
+        try {
+            // Normalizar nulls para evitar errores de tipo en Hibernate con native queries
+            Integer idItem = d.getIdItem() != null ? d.getIdItem() : 0;
+            Double stockMinimo = d.getItemStockMinimo() != null ? d.getItemStockMinimo() : 0.0;
+            String itemNombre = d.getItemNombre() != null ? d.getItemNombre() : "";
+            String itemCategoria = d.getItemCategoria() != null ? d.getItemCategoria() : "";
+            String itemUnidadMedida = d.getItemUnidadMedida() != null ? d.getItemUnidadMedida() : "";
+            String tipoDonante = d.getTipoDonante() != null ? d.getTipoDonante() : "";
+            String nombreDonante = d.getNombreDonante() != null ? d.getNombreDonante() : "";
+            String correoDonante = d.getCorreoDonante() != null ? d.getCorreoDonante() : "";
+            String telefonoDonante = d.getTelefonoDonante() != null ? d.getTelefonoDonante() : "";
+            String dniDonante = d.getDniDonante() != null ? d.getDniDonante() : "";
+            String rucDonante = d.getRucDonante() != null ? d.getRucDonante() : "";
+            String descripcion = d.getDescripcion() != null ? d.getDescripcion() : "";
+            String subtipoDonacion = d.getSubtipoDonacion() != null ? d.getSubtipoDonacion() : "";
+
+            List<?> result = em.createNativeQuery(
+                    "CALL sp_registrar_donacion_inventario(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19)")
+                    .setParameter(1, d.getCantidad())
+                    .setParameter(2, descripcion)
+                    .setParameter(3, d.getIdTipoDonacion())
+                    .setParameter(4, subtipoDonacion)
+                    .setParameter(5, d.getIdActividad())
+                    .setParameter(6, d.getIdUsuarioRegistro())
+                    .setParameter(7, idItem)
+                    .setParameter(8, d.isCrearNuevoItem() ? 1 : 0)
+                    .setParameter(9, itemNombre)
+                    .setParameter(10, itemCategoria)
+                    .setParameter(11, itemUnidadMedida)
+                    .setParameter(12, stockMinimo)
+                    .setParameter(13, d.isDonacionAnonima() ? 1 : 0)
+                    .setParameter(14, tipoDonante)
+                    .setParameter(15, nombreDonante)
+                    .setParameter(16, correoDonante)
+                    .setParameter(17, telefonoDonante)
+                    .setParameter(18, dniDonante)
+                    .setParameter(19, rucDonante)
+                    .getResultList();
+            if (!result.isEmpty()) {
+                Number idGenerado = (Number) result.get(0);
+                d.setIdDonacion(idGenerado.intValue());
+            }
+            logger.info("✓ Donacion registrada con ID: " + d.getIdDonacion());
+            return true;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error al guardar donacion", e);
+            return false;
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public boolean actualizar(Donacion d) {
+        try {
+            em.createNativeQuery(
+                    "CALL sp_actualizar_donacion_inventario(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)")
+                    .setParameter(1, d.getIdDonacion())
+                    .setParameter(2, d.getCantidad())
+                    .setParameter(3, d.getDescripcion())
+                    .setParameter(4, d.getSubtipoDonacion() != null ? d.getSubtipoDonacion() : "")
+                    .setParameter(5, d.getIdActividad())
+                    .setParameter(6, d.isDonacionAnonima() ? 1 : 0)
+                    .setParameter(7, d.getTipoDonante())
+                    .setParameter(8, d.getNombreDonante())
+                    .setParameter(9, d.getCorreoDonante())
+                    .setParameter(10, d.getTelefonoDonante())
+                    .setParameter(11, d.getDniDonante())
+                    .setParameter(12, d.getRucDonante())
+                    .setParameter(13, 0)
+                    .setParameter(14, (String) null)
+                    .getResultList();
+            logger.info("✓ Donacion actualizada ID: " + d.getIdDonacion());
+            return true;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error al actualizar donacion", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean actualizarDetalleEspecie(int idDonacion, double cantidad, String observacion) {
+        try {
+            Object result = em.createNativeQuery("CALL sp_actualizar_detalle_especie(?1, ?2, ?3)")
+                    .setParameter(1, idDonacion)
+                    .setParameter(2, cantidad)
+                    .setParameter(3, observacion)
+                    .getSingleResult();
+            return ((Number) result).intValue() > 0;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error al actualizar detalle de donacion en especie", e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean anular(int id, int idUsuario, String motivo) {
+        try {
+            em.createNativeQuery("{CALL sp_anular_donacion_inventario(?,?,?)}")
+                    .setParameter(1, id)
+                    .setParameter(2, idUsuario)
+                    .setParameter(3, motivo)
+                    .executeUpdate();
+            logger.info("✓ Donacion anulada ID: " + id);
+            return true;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error al anular donacion", e);
+            return false;
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public boolean cambiarEstado(int id, String estado) {
+        try {
+            List<?> results = em.createNativeQuery("CALL sp_cambiar_estado_donacion(?1, ?2)")
+                    .setParameter(1, id)
+                    .setParameter(2, estado)
+                    .getResultList();
+            if (results.isEmpty()) {
+                logger.warning("SP sp_cambiar_estado_donacion no retornó resultado para id=" + id);
+                return false;
+            }
+            Object row = results.get(0);
+            int filas;
+            if (row instanceof Object[]) {
+                filas = toInt(((Object[]) row)[0], 0);
+            } else {
+                filas = toInt(row, 0);
+            }
+            logger.info("cambiarEstado donacion #" + id + " a " + estado + " -> filas=" + filas);
+            return filas > 0;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error al cambiar estado de donacion id=" + id + " estado=" + estado, e);
+            return false;
+        }
+    }
+
+    // ── HELPERS ─────────────────────────────────────────────
+
+    private Donacion mapear(Object[] row) {
+        Donacion d = new Donacion();
+        d.setIdDonacion(toInt(row[0], 0));
+        d.setCantidad(toDouble(row[1], 0.0));
+        d.setDescripcion(row[2] != null ? row[2].toString() : null);
+        d.setIdTipoDonacion(toInt(row[3], 0));
+        d.setIdActividad(toInt(row[4], 0));
+        d.setIdUsuarioRegistro(toInt(row[5], 0));
+        d.setRegistradoEn(row[6] != null ? row[6].toString() : null);
+        d.setTipoDonacion(row[7] != null ? row[7].toString() : null);
+        d.setActividad(row[8] != null ? row[8].toString() : null);
+        d.setUsuarioRegistro(row[9] != null ? row[9].toString() : null);
+        d.setDonanteNombre(row[10] != null ? row[10].toString() : null);
+        d.setEstado(row[11] != null ? row[11].toString() : null);
+        d.setTipoDonante(row[12] != null ? row[12].toString() : null);
+        d.setIdItem(row[13] != null ? toInt(row[13], null) : null);
+        d.setCantidadItem(row[14] != null ? toDouble(row[14], null) : null);
+        d.setItemNombre(row[15] != null ? row[15].toString() : null);
+        d.setItemUnidadMedida(row[16] != null ? row[16].toString() : null);
+        d.setDniDonante(row[17] != null ? row[17].toString() : null);
+        d.setRucDonante(row[18] != null ? row[18].toString() : null);
+        d.setCorreoDonante(row[19] != null ? row[19].toString() : null);
+        d.setTelefonoDonante(row[20] != null ? row[20].toString() : null);
+        d.setSubtipoDonacion(row.length > 21 && row[21] != null ? row[21].toString() : null);
+        return d;
+    }
+
+    /** Convierte cualquier Object (Number o String) a int de forma segura. */
+    private Integer toInt(Object value, Integer defaultValue) {
+        if (value == null)
+            return defaultValue;
+        if (value instanceof Number)
+            return ((Number) value).intValue();
+        try {
+            return Integer.parseInt(value.toString().trim());
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    /** Convierte cualquier Object (Number o String) a double de forma segura. */
+    private Double toDouble(Object value, Double defaultValue) {
+        if (value == null)
+            return defaultValue;
+        if (value instanceof Number)
+            return ((Number) value).doubleValue();
+        try {
+            return Double.parseDouble(value.toString().trim());
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+}

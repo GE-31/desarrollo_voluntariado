@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Certificados - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/certificados.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+        <!-- Header -->
+        <div class="certificados-header">
+            <div>
+                <h1>Gestión de Certificados</h1>
+                <p>Emisión y control de certificados de voluntariado</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="abrirModalVerificar()">
+                    <i class="fa-solid fa-magnifying-glass"></i> Verificar Certificado
+                </button>
+                <button class="btn btn-primary" onclick="abrirModal()">
+                    <i class="fa-solid fa-certificate"></i> Emitir Certificado
+                </button>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-icon emitidos"><i class="fa-solid fa-certificate"></i></div>
+                <div class="stat-info">
+                    <h3 id="totalEmitidos" th:text="${certificados != null ? #lists.size(certificados.?[estado == 'EMITIDO']) : 0}">0</h3>
+                    <p>Certificados Emitidos</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon anulados"><i class="fa-solid fa-ban"></i></div>
+                <div class="stat-info">
+                    <h3 id="totalAnulados" th:text="${certificados != null ? #lists.size(certificados.?[estado == 'ANULADO']) : 0}">0</h3>
+                    <p>Certificados Anulados</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon horas"><i class="fa-solid fa-list-check"></i></div>
+                <div class="stat-info">
+                    <h3 id="totalActividades" th:text="${certificados != null ? #sets.size(#sets.toSet(certificados.![nombreActividad])) : 0}">0</h3>
+                    <p>Actividades Certificadas</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="certificados-filtros">
+            <label for="buscarCertificados">Buscar</label>
+            <input type="text" id="buscarCertificados" placeholder="Codigo, voluntario, DNI, actividad o estado">
+        </div>
+
+        <!-- Tabla -->
+        <div class="certificados-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Voluntario</th>
+                        <th>DNI</th>
+                        <th>Actividad</th>
+                        <th>Fecha Emisión</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyCertificados">
+                    <tr th:each="c : ${certificados}" class="certificado-row">
+                        <td>
+                            <span class="codigo-certificado">
+                                <i class="fa-solid fa-qrcode"></i>
+                                <span th:text="${c.codigoCertificado}">CERT-001</span>
+                            </span>
+                        </td>
+                        <td th:text="${c.nombreVoluntario}">Voluntario</td>
+                        <td th:text="${c.dniVoluntario}">12345678</td>
+                        <td th:text="${c.nombreActividad}">Actividad</td>
+                        <td th:text="${c.fechaEmision}">2025-01-01</td>
+                        <td>
+                            <span class="estado-badge" th:classappend="${#strings.toLowerCase(c.estado)}" th:text="${c.estado}">EMITIDO</span>
+                        </td>
+                        <td class="acciones-cell">
+                            <button class="btn-icon view" th:onclick="'verCertificado(' + ${c.idCertificado} + ')'" title="Ver Certificado">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                            <button class="btn-icon print" th:onclick="'imprimirCertificado(' + ${c.idCertificado} + ')'" title="Imprimir">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                            <button th:if="${c.estado == 'EMITIDO'}" class="btn-icon delete" th:onclick="'anularCertificado(' + ${c.idCertificado} + ')'" title="Anular">
+                                <i class="fa-solid fa-ban"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${certificados == null or certificados.empty}" id="sinCertificadosRow">
+                        <td colspan="7" class="no-data">No hay certificados emitidos</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- MODAL EMITIR CERTIFICADO -->
+<div id="modalCertificado" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2 id="tituloModal">Emitir Certificado</h2>
+                    <p>Complete los datos para generar el certificado</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModal()">&#10005;</button>
+            </div>
+            <form id="formCertificado" onsubmit="guardarCertificado(event)">
+                <input type="hidden" name="action" value="crear">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Actividad *</label>
+                        <select id="idActividad" name="idActividad" class="form-input" required onchange="cargarVoluntariosPorActividad()">
+                            <option value="">Seleccione una actividad</option>
+                            <option th:each="a : ${actividades}" th:value="${a.idActividad}" th:text="${a.nombre + ' (' + a.fechaInicio + ')'}">Actividad</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Voluntario *</label>
+                        <select id="idVoluntario" name="idVoluntario" class="form-input" required>
+                            <option value="">Primero seleccione una actividad</option>
+                        </select>
+                    </div>
+                    <div id="infoHorasContainer" class="form-group full-width" style="display:none;">
+                        <div id="infoHorasMsg" style="padding:0.75rem 1rem; border-radius:8px; font-size:0.88rem; display:flex; align-items:center; gap:0.5rem;"></div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Observaciones</label>
+                        <textarea id="observaciones" name="observaciones" class="form-textarea" placeholder="Notas adicionales sobre la participación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-certificate"></i> Emitir Certificado
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL VERIFICAR CERTIFICADO -->
+<div id="modalVerificar" class="modal-overlay">
+    <div class="modal-container modal-small">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2>Verificar Certificado</h2>
+                    <p>Ingrese el código del certificado</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModalVerificar()">&#10005;</button>
+            </div>
+            <div class="verificar-form">
+                <div class="form-group">
+                    <label>Código del Certificado</label>
+                    <input type="text" id="codigoVerificar" class="form-input" placeholder="Ej: CERT-2026-001" style="text-transform: uppercase;">
+                </div>
+                <button class="btn btn-primary full-width" onclick="verificarCertificado()">
+                    <i class="fa-solid fa-search"></i> Verificar
+                </button>
+                <div id="resultadoVerificacion" class="resultado-verificacion" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL VER CERTIFICADO -->
+<div id="modalVer" class="modal-overlay">
+    <div class="modal-container modal-certificado" style="width: 90%; max-width: 1000px; height: 85vh;">
+        <div class="modal-card certificado-preview" style="height: 100%; display: flex; flex-direction: column;">
+            <button class="modal-close-btn" onclick="cerrarModalVer()">&#10005;</button>
+            <iframe id="certificadoPDFFrame" src="" style="flex: 1; width: 100%; border: none; border-radius: 8px;"></iframe>
+            <div class="modal-actions" style="margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="cerrarModalVer()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const contextPath = [[@{/}]].replace(/\/$/, '');
+</script>
+<script th:src="@{/js/certificados.js}"></script>
+</body>
+</html>

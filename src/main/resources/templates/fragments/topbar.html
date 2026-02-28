@@ -1,0 +1,122 @@
+<!-- Thymeleaf fragment: topbar -->
+<div th:fragment="topbar" xmlns:th="http://www.thymeleaf.org"
+     th:with="usr=${session.usuarioLogeado}, rol=${session.nombreRolUsuario != null ? session.nombreRolUsuario : 'Usuario'}">
+
+<link rel="stylesheet" th:href="@{/css/notifications.css}"/>
+<script th:src="@{/js/notifications.js}"></script>
+
+<header class="top-bar">
+
+    <!-- TÍTULO Y BIENVENIDA -->
+    <div>
+        <h1>SISTEMA DE VOLUNTARIADO</h1>
+        <p>Bienvenido,
+            <strong><span th:text="${usr.nombres}">Nombre</span> <span th:text="${usr.apellidos}">Apellido</span></strong>
+        </p>
+    </div>
+
+    <!-- ACCIONES SUPERIORES -->
+    <div class="top-actions">
+
+        <!-- NOTIFICACIONES -->
+        <div class="notification" id="notifContainer">
+            <i class="fas fa-bell" id="notifBell"></i>
+            <span class="badge" id="notifBadge" style="display:none;">0</span>
+
+            <!-- Dropdown de notificaciones -->
+            <div class="notif-dropdown" id="notifDropdown">
+                <div class="notif-header">
+                    <h4>Notificaciones</h4>
+                    <button class="notif-mark-all" id="marcarTodasBtn" title="Marcar todas como leídas">
+                        <i class="fas fa-check-double"></i>
+                    </button>
+                </div>
+                <div class="notif-list" id="notifList">
+                    <div class="notif-empty">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>Sin notificaciones</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PERFIL -->
+        <div class="user-profile" id="openAvatarModal">
+
+            <div class="avatar">
+                <img th:if="${usr.fotoPerfil != null and !usr.fotoPerfil.isEmpty()}"
+                     th:src="@{/{foto}(foto=${usr.fotoPerfil})}"
+                     alt="Foto de perfil" class="avatar-img"
+                     th:onerror="'this.onerror=null; this.src=\'' + @{/img/perfil.png} + '\';'"/>
+                <img th:unless="${usr.fotoPerfil != null and !usr.fotoPerfil.isEmpty()}"
+                     th:src="@{/img/perfil.png}" alt="Foto de perfil" class="avatar-img"/>
+            </div>
+
+            <div class="info">
+                <span class="name" th:text="${usr.nombres + ' ' + usr.apellidos}">Nombre Apellido</span>
+                <span class="role" th:text="${rol}">Rol</span>
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+<!-- MODAL FOTO DE PERFIL -->
+<div class="modal" id="avatarModal">
+    <div class="modal-content foto-modal">
+
+        <h2>Actualizar Foto de Perfil</h2>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+
+            <!-- Vista previa circular -->
+            <div class="foto-preview" id="previewContainer">
+                <img id="previewImg" src="" alt="Vista previa">
+                <div class="foto-preview-placeholder" id="previewPlaceholder">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"
+                         stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px;flex-shrink:0;">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span>Sin foto</span>
+                </div>
+            </div>
+
+            <!-- Input file oculto -->
+            <input type="file" name="foto" id="fotoInput" accept="image/*" required style="display:none;">
+
+            <!-- Botón para seleccionar archivo -->
+            <button type="button" class="btn-seleccionar-foto" id="btnSeleccionarFoto">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span id="nombreArchivo">Seleccionar imagen</span>
+            </button>
+            <p class="foto-hint">Formatos: JPG, PNG, GIF — Máximo 5 MB</p>
+
+            <div class="modal-buttons">
+                <button type="button" id="closeModal">Cancelar</button>
+                <button type="submit" class="save" id="btnGuardarFoto">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         style="margin-right:6px;vertical-align:-2px;">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Guardar Foto
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script th:src="@{/js/topbar.js}"></script>
+
+</div>

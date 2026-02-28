@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventario - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/inventario.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+
+        <div class="inventario-header">
+            <div>
+                <h1>Inventario</h1>
+                <p>Gestiona categorias, catalogo de items, stock y movimientos</p>
+            </div>
+            <button class="btn btn-primary" id="btnNuevoPrincipal" onclick="accionNuevo()">
+                <i class="fa-solid fa-circle-plus"></i> <span id="btnNuevoTexto">Nueva Categoria</span>
+            </button>
+        </div>
+
+        <!-- ═══ Pestañas ═══ -->
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="tabCategorias" onclick="cambiarTab('tabCategorias')">
+                <i class="fa-solid fa-tags"></i> Categorias
+            </button>
+            <button class="tab-btn" data-tab="tabItems" onclick="cambiarTab('tabItems')">
+                <i class="fa-solid fa-boxes-stacked"></i> Items Base
+            </button>
+        </div>
+
+        <!-- ═══════════════════ TAB: CATEGORIAS ═══════════════════ -->
+        <div id="tabCategorias" class="tab-content active">
+            <div class="categorias-grid" id="categoriasGrid">
+                <!-- Se llena por JS -->
+            </div>
+            <div id="categoriasPaginacion" class="table-pagination" style="display:none;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnCategoriasAnterior">Anterior</button>
+                <span id="textoPaginacionCategorias"></span>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnCategoriasSiguiente">Siguiente</button>
+            </div>
+        </div>
+
+        <!-- ═══════════════════ TAB: ITEMS BASE ═══════════════════ -->
+        <div id="tabItems" class="tab-content" style="display:none;">
+            <div class="inventario-kpis">
+                <div class="kpi-card warning">
+                    <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="kpi-text">
+                        <span class="kpi-label">Stock bajo</span>
+                        <span class="kpi-value" id="stockBajoTotal">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filtros-bar">
+                <div class="filtro-grupo">
+                    <label>Buscar</label>
+                    <input type="text" id="filtroQ" placeholder="Nombre u observacion">
+                </div>
+                <div class="filtro-grupo">
+                    <label>Categoria</label>
+                    <select id="filtroCategoria">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="filtro-grupo">
+                    <label>Estado</label>
+                    <select id="filtroEstado">
+                        <option value="">Todos</option>
+                        <option value="ACTIVO">Activo</option>
+                        <option value="INACTIVO">Inactivo</option>
+                    </select>
+                </div>
+                <div class="filtro-check">
+                    <label><input type="checkbox" id="filtroStockBajo"> Solo stock bajo</label>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="limpiarFiltros()">
+                    <i class="fa-solid fa-eraser"></i> Limpiar
+                </button>
+            </div>
+
+            <div class="inventario-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Item</th>
+                            <th>Unidad</th>
+                            <th>Stock actual</th>
+                            <th>Stock minimo</th>
+                            <th>Estado</th>
+                            <th>Actualizado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyInventario">
+                        <!-- Se llena por JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="inventarioPaginacion" class="table-pagination" style="display:none;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnInventarioAnterior">Anterior</button>
+                <span id="textoPaginacionInventario"></span>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnInventarioSiguiente">Siguiente</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ═══ Modal Item ═══ -->
+<div id="modalInventario" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2 id="tituloModal">Nuevo Item</h2>
+                    <p>Registrar o actualizar datos base del item</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModal()">&#10005;</button>
+            </div>
+            <form id="formInventario" onsubmit="guardarItem(event)">
+                <input type="hidden" id="idItem" name="idItem">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Nombre *</label>
+                        <input type="text" id="nombre" name="nombre" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoria *</label>
+                        <select id="categoria" name="categoria" class="form-input" required>
+                            <option value="">Seleccione</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Unidad *</label>
+                        <select id="unidadMedida" name="unidadMedida" class="form-input" required>
+                            <option value="">Seleccione</option>
+                            <option value="unidad">Unidad</option>
+                            <option value="kg">Kg</option>
+                            <option value="litro">Litro</option>
+                            <option value="caja">Caja</option>
+                            <option value="paquete">Paquete</option>
+                            <option value="lata">Lata</option>
+                            <option value="botella">Botella</option>
+                            <option value="__OTRO__">Otro (especificar)</option>
+                        </select>
+                        <input type="text" id="unidadMedidaOtro" class="form-input" maxlength="30"
+                               placeholder="Especifique unidad" style="display:none; margin-top:8px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Stock minimo *</label>
+                        <input type="number" id="stockMinimo" name="stockMinimo" step="0.01" min="0"
+                               class="form-input" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <small>El stock actual se modifica solo con movimientos (donaciones, entradas o salidas).</small>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Observacion</label>
+                        <textarea id="observacion" name="observacion" class="form-textarea" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Modal Movimiento ═══ -->
+<div id="modalMovimiento" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2>Registrar Movimiento</h2>
+                    <p>Ajusta el stock con trazabilidad</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModalMovimiento()">&#10005;</button>
+            </div>
+            <form id="formMovimiento" onsubmit="guardarMovimiento(event)">
+                <input type="hidden" id="movIdItem" name="movIdItem">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Item</label>
+                        <input type="text" id="movNombreItem" class="form-input" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Stock actual</label>
+                        <input type="text" id="movStockActual" class="form-input" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de movimiento *</label>
+                        <select id="movTipo" class="form-input" required>
+                            <option value="">Seleccione</option>
+                            <option value="ENTRADA">Entrada</option>
+                            <option value="SALIDA">Salida</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cantidad *</label>
+                        <input type="number" id="movCantidad" class="form-input" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Motivo *</label>
+                        <input type="text" id="movMotivo" class="form-input" maxlength="30"
+                               placeholder="COMPRA, CONSUMO, MERMA..." required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Observacion</label>
+                        <textarea id="movObservacion" class="form-textarea" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalMovimiento()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar movimiento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Modal Categoria ═══ -->
+<div id="modalCategoria" class="modal-overlay">
+    <div class="modal-container modal-sm">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2 id="tituloCatModal">Nueva Categoria</h2>
+                    <p>Registrar o actualizar una categoria del inventario</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModalCategoria()">&#10005;</button>
+            </div>
+            <form id="formCategoria" onsubmit="guardarCategoria(event)">
+                <input type="hidden" id="catIdCategoria">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label>Nombre *</label>
+                        <input type="text" id="catNombre" class="form-input" maxlength="50" required
+                               placeholder="Ej: Alimentos, Ropa, Utiles...">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Descripcion</label>
+                        <textarea id="catDescripcion" class="form-textarea" rows="2" maxlength="200"
+                                  placeholder="Descripcion breve de la categoria"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Color</label>
+                        <input type="color" id="catColor" class="form-input form-color" value="#6366f1">
+                    </div>
+                    <div class="form-group">
+                        <label>Icono</label>
+                        <select id="catIcono" class="form-input">
+                            <option value="fa-box">&#xf466; Caja</option>
+                            <option value="fa-utensils">&#xf2e7; Alimentos</option>
+                            <option value="fa-shirt">&#xf553; Ropa</option>
+                            <option value="fa-pencil">&#xf303; Utiles</option>
+                            <option value="fa-pills">&#xf484; Medicinas</option>
+                            <option value="fa-pump-soap">&#xe06b; Higiene</option>
+                            <option value="fa-baby">&#xf77c; Bebe</option>
+                            <option value="fa-house">&#xf015; Hogar</option>
+                            <option value="fa-laptop">&#xf109; Tecnologia</option>
+                            <option value="fa-ellipsis">&#xf141; Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalCategoria()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/inventario.js}"></script>
+</body>
+</html>

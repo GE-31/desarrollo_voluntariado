@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Tesorería - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/tesoreria.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+        <!-- HEADER -->
+        <div class="tesoreria-header">
+            <div>
+                <h1>Tesorería</h1>
+                <p>Control de ingresos, gastos y balance financiero</p>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModal()">
+                <i class="fa-solid fa-circle-plus"></i> Nuevo Movimiento
+            </button>
+        </div>
+
+        <!-- TARJETAS BALANCE -->
+        <div class="balance-cards">
+            <div class="balance-card ingreso">
+                <div class="balance-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                <div class="balance-info">
+                    <span class="balance-label">Total Ingresos</span>
+                    <span class="balance-monto" id="totalIngresos">S/ 0.00</span>
+                </div>
+            </div>
+            <div class="balance-card gasto">
+                <div class="balance-icon"><i class="fa-solid fa-arrow-trend-down"></i></div>
+                <div class="balance-info">
+                    <span class="balance-label">Total Gastos</span>
+                    <span class="balance-monto" id="totalGastos">S/ 0.00</span>
+                </div>
+            </div>
+            <div class="balance-card saldo">
+                <div class="balance-icon"><i class="fa-solid fa-wallet"></i></div>
+                <div class="balance-info">
+                    <span class="balance-label">Saldo Disponible</span>
+                    <span class="balance-monto" id="saldoDisponible">S/ 0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="filtros-bar">
+            <div class="filtro-grupo">
+                <label>Tipo</label>
+                <select id="filtroTipo" onchange="filtrarMovimientos()">
+                    <option value="">Todos</option>
+                    <option value="INGRESO">Ingresos</option>
+                    <option value="GASTO">Gastos</option>
+                </select>
+            </div>
+            <div class="filtro-grupo">
+                <label>Categoría</label>
+                <select id="filtroCategoria" onchange="filtrarMovimientos()">
+                    <option value="">Todas</option>
+                    <option value="Donaciones">Donaciones</option>
+                    <option value="Cuotas">Cuotas</option>
+                    <option value="Subvenciones">Subvenciones</option>
+                    <option value="Eventos">Eventos</option>
+                    <option value="Materiales">Materiales</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Alimentación">Alimentación</option>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Otros">Otros</option>
+                </select>
+            </div>
+            <div class="filtro-grupo">
+                <label>Desde</label>
+                <input type="date" id="filtroFechaIni" onchange="filtrarMovimientos()">
+            </div>
+            <div class="filtro-grupo">
+                <label>Hasta</label>
+                <input type="date" id="filtroFechaFin" onchange="filtrarMovimientos()">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="limpiarFiltros()">
+                <i class="fa-solid fa-eraser"></i> Limpiar
+            </button>
+        </div>
+
+        <!-- TABLA MOVIMIENTOS -->
+        <div class="tesoreria-table">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Monto</th>
+                            <th>Descripción</th>
+                            <th>Categoría</th>
+                            <th>Comprobante</th>
+                            <th>Fecha</th>
+                            <th>Actividad</th>
+                            <th>Registrado por</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyMovimientos">
+                        <tr th:each="m : ${movimientos}">
+                            <td>
+                                <span class="tag" th:classappend="${m.tipo == 'INGRESO' ? 'tag-ingreso' : 'tag-gasto'}" th:text="${m.tipo}">INGRESO</span>
+                            </td>
+                            <td><strong th:text="'S/ ' + ${#numbers.formatDecimal(m.monto, 1, 2)}">S/ 0.00</strong></td>
+                            <td th:text="${m.descripcion}">Descripción</td>
+                            <td th:text="${m.categoria}">Categoría</td>
+                            <td th:text="${m.comprobante != null ? m.comprobante : '—'}">—</td>
+                            <td th:text="${m.fechaMovimiento}">2025-01-01</td>
+                            <td th:text="${m.actividad}">Actividad</td>
+                            <td th:text="${m.usuarioRegistro}">Usuario</td>
+                            <td class="acciones-cell">
+                                <button class="btn-icon edit" th:onclick="'editarMovimiento(' + ${m.idMovimiento} + ')'" title="Editar">&#9998;</button>
+                                <button class="btn-icon delete" th:onclick="'eliminarMovimiento(' + ${m.idMovimiento} + ')'" title="Eliminar">&#128465;</button>
+                            </td>
+                        </tr>
+                        <tr th:if="${movimientos == null or movimientos.empty}">
+                            <td colspan="9" class="no-data">No hay movimientos registrados</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GRÁFICOS -->
+        <div class="graficos-container">
+            <div class="grafico-card">
+                <h3><i class="fa-solid fa-chart-line"></i> Tendencia Mensual</h3>
+                <canvas id="chartMensual"></canvas>
+            </div>
+            <div class="grafico-card">
+                <h3><i class="fa-solid fa-chart-pie"></i> Distribución por Categoría</h3>
+                <canvas id="chartCategoria"></canvas>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- MODAL MOVIMIENTO -->
+<div id="modalMovimiento" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2 id="tituloModal">Registrar Movimiento</h2>
+                    <p>Ingresa la información del movimiento financiero</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModal()">&#10005;</button>
+            </div>
+            <form id="formMovimiento" onsubmit="guardarMovimiento(event)">
+                <input type="hidden" id="idMovimiento" name="idMovimiento">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tipo *</label>
+                        <select id="tipo" name="tipo" class="form-input" required>
+                            <option value="">Seleccione</option>
+                            <option value="INGRESO">Ingreso</option>
+                            <option value="GASTO">Gasto</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Monto (S/) *</label>
+                        <input type="number" id="monto" name="monto" class="form-input" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría *</label>
+                        <select id="categoria" name="categoria" class="form-input" required>
+                            <option value="">Seleccione</option>
+                            <option value="Donaciones">Donaciones</option>
+                            <option value="Cuotas">Cuotas</option>
+                            <option value="Subvenciones">Subvenciones</option>
+                            <option value="Eventos">Eventos</option>
+                            <option value="Materiales">Materiales</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Alimentación">Alimentación</option>
+                            <option value="Servicios">Servicios</option>
+                            <option value="Personal">Personal</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha *</label>
+                        <input type="date" id="fechaMovimiento" name="fechaMovimiento" class="form-input" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Descripción *</label>
+                        <textarea id="descripcion" name="descripcion" class="form-textarea" rows="2" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Nº Comprobante</label>
+                        <input type="text" id="comprobante" name="comprobante" class="form-input" placeholder="Opcional">
+                    </div>
+                    <div class="form-group">
+                        <label>Actividad relacionada</label>
+                        <select id="idActividad" name="idActividad" class="form-input">
+                            <option value="0">Ninguna</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/tesoreria.js}"></script>
+</body>
+</html>

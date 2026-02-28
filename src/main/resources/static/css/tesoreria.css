@@ -1,0 +1,505 @@
+/* ===================================================================
+   TESORERÍA — DASHBOARD PRO UI
+   Tema: Azul violeta elegante (#667eea / #764ba2)
+=================================================================== */
+
+:root {
+    --primary: #667eea;
+    --primary-hover: #5568d3;
+    --danger: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --text: #222;
+    --text-secondary: #666;
+    --border: #e2e8f0;
+    --radius: 12px;
+    --modal-bg: #ffffff;
+    --modal-border: #dbe2f0;
+}
+
+/* ======================= HEADER ======================= */
+.tesoreria-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.4rem 1rem;
+    background: #fff;
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.tesoreria-header h1 {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.tesoreria-header p {
+    margin: 3px 0 0;
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+}
+
+/* ======================= TARJETAS BALANCE ======================= */
+.balance-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.balance-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.3rem 1.5rem;
+    border-radius: var(--radius);
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s;
+}
+
+.balance-card:hover {
+    transform: translateY(-2px);
+}
+
+.balance-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.balance-card.ingreso .balance-icon {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success);
+}
+
+.balance-card.gasto .balance-icon {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--danger);
+}
+
+.balance-card.saldo .balance-icon {
+    background: rgba(102, 126, 234, 0.12);
+    color: var(--primary);
+}
+
+.balance-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.balance-label {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.balance-monto {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* ======================= FILTROS ======================= */
+.filtros-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: #fff;
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    flex-wrap: wrap;
+}
+
+.filtro-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filtro-grupo label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.filtro-grupo select,
+.filtro-grupo input[type="date"] {
+    padding: 0.5rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.88rem;
+    background: #fff;
+    transition: 0.25s;
+    min-width: 140px;
+}
+
+.filtro-grupo select:focus,
+.filtro-grupo input[type="date"]:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    outline: none;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+/* ======================= TABLA ======================= */
+.tesoreria-table {
+    background: #fff;
+    border-radius: 12px;
+    overflow-x: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+}
+
+/* Contenedor scroll fijo para la tabla de movimientos (no empuja los gráficos)
+   - Altura fija en pantallas medianas y grandes
+   - En pantallas pequeñas se deja el comportamiento por defecto (no fixed height)
+*/
+.tesoreria-table .table-scroll {
+    /* altura por defecto para pantallas grandes */
+    max-height: 420px;
+    height: 420px;
+    overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(15,23,42,0.12) transparent;
+}
+
+/* Scrollbar visual (WebKit) */
+.tesoreria-table .table-scroll::-webkit-scrollbar { width: 10px; }
+.tesoreria-table .table-scroll::-webkit-scrollbar-track { background: transparent; }
+.tesoreria-table .table-scroll::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.08); border-radius: 8px; }
+
+/* Responsive: pantallas pequeñas dejan que la tabla crezca normalmente */
+@media (max-width: 767px) {
+    .tesoreria-table .table-scroll {
+        max-height: none;
+        height: auto;
+        overflow: visible;
+    }
+}
+
+/* Ajuste fino para pantallas medianas (tablets) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .tesoreria-table .table-scroll {
+        max-height: 400px;
+        height: 400px;
+    }
+}
+
+.tesoreria-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tesoreria-table th,
+.tesoreria-table td {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.tesoreria-table thead {
+    background: #f6f7fb;
+}
+
+.tesoreria-table thead th {
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tesoreria-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s ease;
+}
+
+.tesoreria-table tbody tr:hover {
+    background: #f9fbfd;
+}
+
+/* Tags tipo */
+.tag {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    border-radius: 999px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.tag-ingreso {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.tag-gasto {
+    background: #fde2e2;
+    color: #c53030;
+}
+
+/* No data */
+.no-data {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem !important;
+    font-style: italic;
+}
+
+/* ======================= ICONOS ACCIONES ======================= */
+.acciones-cell {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    transition: 0.25s;
+    font-size: 1.2rem;
+}
+
+.btn-icon.edit {
+    background: #e3f2fd;
+    color: #1e40af;
+}
+.btn-icon.edit:hover {
+    background: #1e40af;
+    color: #fff;
+}
+
+.btn-icon.delete {
+    background: #fde2e2;
+    color: #c53030;
+}
+.btn-icon.delete:hover {
+    background: #c53030;
+    color: #fff;
+}
+
+/* ======================= GRÁFICOS ======================= */
+.graficos-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.grafico-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.grafico-card h3 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.grafico-card h3 i {
+    color: var(--primary);
+}
+
+/* ======================= BOTONES GENERALES ======================= */
+.btn {
+    padding: 0.7rem 1.35rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: 0.25s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5568d3, #653a91);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    border: 1px solid #d3d8e0;
+    color: var(--text);
+}
+.btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+/* ======================= MODAL ======================= */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.60);
+    backdrop-filter: blur(6px);
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.modal-container {
+    width: 540px;
+    max-width: 95%;
+    animation: modalPop 0.25s ease-out;
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: translateY(20px) scale(.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-card {
+    background: var(--modal-bg);
+    border: 1px solid var(--modal-border);
+    border-radius: 22px;
+    padding: 2rem;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.modal-header-enhanced {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.4rem;
+}
+
+.modal-header-enhanced h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: #111;
+}
+
+.modal-header-enhanced p {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.45rem;
+    cursor: pointer;
+    color: #777;
+    transition: 0.2s;
+}
+.modal-close-btn:hover {
+    transform: scale(1.2);
+    color: var(--danger);
+}
+
+/* Form Grid */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.full-width {
+    grid-column: span 2;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-group label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #555;
+}
+
+.form-input,
+.form-textarea,
+.form-group select {
+    width: 100%;
+    padding: 0.7rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #fff;
+    transition: 0.25s;
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-group select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+    outline: none;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 1.4rem;
+}
+
+/* ======================= RESPONSIVE ======================= */
+@media (max-width: 900px) {
+    .balance-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .graficos-container {
+        grid-template-columns: 1fr;
+    }
+
+    .filtros-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .full-width {
+        grid-column: span 1;
+    }
+}

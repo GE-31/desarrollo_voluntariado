@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Salidas de Inventario - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/salidas-inventario.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+        <!-- ═══════════ HEADER ═══════════ -->
+        <div class="salidas-inv-header">
+            <div class="salidas-inv-header-info">
+                <h1><i class="fa-solid fa-dolly"></i> Salidas de Inventario</h1>
+                <p>Registra y gestiona las salidas de items del inventario</p>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalSalida()">
+                <i class="fa-solid fa-cart-plus"></i> Registrar Salida
+            </button>
+        </div>
+
+        <!-- ═══════════ TARJETAS RESUMEN ═══════════ -->
+        <div class="salidas-inv-summary" id="summaryCards">
+            <div class="summary-card summary-total">
+                <div class="summary-icon"><i class="fa-solid fa-dolly"></i></div>
+                <div>
+                    <span class="summary-label">Total Salidas</span>
+                    <span class="summary-value" id="sumTotal">0</span>
+                </div>
+            </div>
+            <div class="summary-card summary-items">
+                <div class="summary-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <div>
+                    <span class="summary-label">Items Retirados</span>
+                    <span class="summary-value" id="sumItems">0</span>
+                </div>
+            </div>
+            <div class="summary-card summary-confirmadas">
+                <div class="summary-icon"><i class="fa-solid fa-circle-check"></i></div>
+                <div>
+                    <span class="summary-label">Confirmadas</span>
+                    <span class="summary-value" id="sumConfirmadas">0</span>
+                </div>
+            </div>
+            <div class="summary-card summary-anuladas">
+                <div class="summary-icon"><i class="fa-solid fa-ban"></i></div>
+                <div>
+                    <span class="summary-label">Anuladas</span>
+                    <span class="summary-value" id="sumAnuladas">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ FILTRO / BÚSQUEDA ═══════════ -->
+        <div class="salidas-inv-filtros">
+            <div class="filtros-row">
+                <div class="filtro-group">
+                    <label for="buscarSalidasInv"><i class="fa-solid fa-magnifying-glass"></i> Buscar</label>
+                    <input type="text" id="buscarSalidasInv" placeholder="Motivo, actividad, usuario...">
+                </div>
+                <div class="filtro-group">
+                    <label for="filtroEstadoInv">Estado</label>
+                    <select id="filtroEstadoInv">
+                        <option value="">Todos</option>
+                        <option value="CONFIRMADO">Confirmado</option>
+                        <option value="ANULADO">Anulado</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ TABLA ═══════════ -->
+        <div class="salidas-inv-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Motivo</th>
+                        <th>Actividad / Campaña</th>
+                        <th>Items</th>
+                        <th>Registrado por</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodySalidasInv">
+                    <tr>
+                        <td colspan="8" class="no-data">
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size:1.5rem; margin-bottom:8px; display:block; color:#cbd5e1;"></i>
+                            Cargando salidas...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ═══════════ PAGINACIÓN ═══════════ -->
+        <div id="salidasInvPaginacion" class="table-pagination" style="display:none;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnPaginaAnteriorSI">Anterior</button>
+            <span id="textoPaginacionSI"></span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnPaginaSiguienteSI">Siguiente</button>
+        </div>
+    </div>
+</main>
+
+<!-- ════════════════════════════════════════════════════════════════
+     MODAL: REGISTRAR SALIDA DE INVENTARIO (CARRITO)
+════════════════════════════════════════════════════════════════ -->
+<div id="modalSalidaInv" class="modal-overlay">
+    <div class="modal-container modal-lg">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2><i class="fa-solid fa-cart-plus"></i> Registrar Salida de Inventario</h2>
+                    <p>Selecciona items, define cantidades y confirma la salida</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModalSalida()">&#10005;</button>
+            </div>
+
+            <div class="modal-body-scroll">
+                <!-- Sección: Datos generales -->
+                <section class="form-section">
+                    <div class="section-title">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                        <span>Datos de la Salida</span>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Motivo / Justificación *</label>
+                            <input type="text" id="salidaMotivo" class="form-input" maxlength="200"
+                                   placeholder="Ej: Distribución a beneficiarios, Campaña navideña..." required>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fa-solid fa-bullhorn"></i> Actividad / Campaña</label>
+                            <select id="salidaActividad" class="form-input">
+                                <option value="0">Sin actividad asociada</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Observación</label>
+                            <textarea id="salidaObservacion" class="form-textarea" rows="2"
+                                      placeholder="Notas adicionales sobre la salida..."></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sección: Agregar items al carrito -->
+                <section class="form-section">
+                    <div class="section-title">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>Agregar Items al Carrito</span>
+                    </div>
+                    <div class="carrito-agregar">
+                        <div class="carrito-agregar-row">
+                            <div class="carrito-field carrito-field-item">
+                                <label>Item del inventario</label>
+                                <select id="carritoItemSelect" class="form-input">
+                                    <option value="">Seleccione un item</option>
+                                </select>
+                            </div>
+                            <div class="carrito-field carrito-field-stock">
+                                <label>Stock disponible</label>
+                                <input type="text" id="carritoStockDisponible" class="form-input" readonly value="-">
+                            </div>
+                            <div class="carrito-field carrito-field-cantidad">
+                                <label>Cantidad a retirar</label>
+                                <input type="number" id="carritoCantidad" class="form-input" min="0.01" step="0.01" placeholder="0">
+                            </div>
+                            <div class="carrito-field carrito-field-btn">
+                                <label>&nbsp;</label>
+                                <button type="button" class="btn btn-primary btn-agregar-carrito" onclick="agregarAlCarrito()">
+                                    <i class="fa-solid fa-cart-plus"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                        <div id="carritoError" class="carrito-error" style="display:none;"></div>
+                    </div>
+                </section>
+
+                <!-- Sección: Carrito de salida -->
+                <section class="form-section">
+                    <div class="section-title">
+                        <i class="fa-solid fa-shopping-cart"></i>
+                        <span>Carrito de Salida</span>
+                        <span class="carrito-badge" id="carritoContador">0 items</span>
+                    </div>
+                    <div class="carrito-table-wrapper">
+                        <table class="carrito-table" id="tablaCarrito">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Categoría</th>
+                                    <th>Unidad</th>
+                                    <th>Stock Actual</th>
+                                    <th>Cantidad a Retirar</th>
+                                    <th>Stock Resultante</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyCarrito">
+                                <tr id="carritoVacio">
+                                    <td colspan="7" class="no-data carrito-vacio">
+                                        <i class="fa-solid fa-cart-shopping" style="font-size:2rem; margin-bottom:8px; display:block; color:#cbd5e1;"></i>
+                                        El carrito está vacío. Agrega items para registrar la salida.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalSalida()">Cancelar</button>
+                <button type="button" id="btnConfirmarSalida" class="btn btn-primary btn-confirmar" onclick="confirmarSalida()" disabled>
+                    <i class="fa-solid fa-check-circle"></i> Confirmar Salida
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     MODAL: VER DETALLE DE SALIDA
+════════════════════════════════════════════════════════════════ -->
+<div id="modalDetalleSalida" class="modal-overlay">
+    <div class="modal-container modal-lg">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2><i class="fa-solid fa-eye"></i> Detalle de Salida #<span id="detalleIdSalida"></span></h2>
+                    <p>Información completa de la salida de inventario</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModalDetalle()">&#10005;</button>
+            </div>
+            <div class="modal-body-scroll">
+                <div class="detalle-info" id="detalleInfo">
+                    <!-- Se llena por JS -->
+                </div>
+                <div class="detalle-items-wrapper">
+                    <h3><i class="fa-solid fa-list"></i> Items de la Salida</h3>
+                    <table class="carrito-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Categoría</th>
+                                <th>Unidad</th>
+                                <th>Cantidad</th>
+                                <th>Stock Antes</th>
+                                <th>Stock Después</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDetalle">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="cerrarModalDetalle()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/salidas-inventario.js}"></script>
+</body>
+</html>

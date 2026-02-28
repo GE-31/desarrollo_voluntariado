@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actividades - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/actividades.css?v=2}">
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+        <!-- Header -->
+        <div class="actividades-header">
+            <div>
+                <h1>Gestión de Actividades</h1>
+                <p>Administra las actividades y eventos del sistema</p>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalCrear()">
+                <span>+</span> Nueva Actividad
+            </button>
+        </div>
+
+        <div class="actividades-filtros">
+            <label for="buscarActividades">Buscar</label>
+            <input type="text" id="buscarActividades" placeholder="Nombre, descripcion, ubicacion o estado">
+        </div>
+
+        <!-- Tabla -->
+        <div class="actividades-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Actividad</th>
+                        <th>Fecha Inicio</th>
+                        <th>Fecha Fin</th>
+                        <th>Ubicación</th>
+                        <th>Cupo</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="actividades-tbody">
+                    <tr th:each="a : ${actividades}" class="actividad-row" th:data-id="${a.idActividad}">
+                        <td>
+                            <div class="actividad-nombre">
+                                <strong th:text="${a.nombre}">Nombre</strong>
+                                <small th:text="${a.descripcion != null ? a.descripcion : ''}"></small>
+                            </div>
+                        </td>
+                        <td><span class="badge-fecha" th:text="${a.fechaInicio}">2025-01-01</span></td>
+                        <td><span class="badge-fecha" th:text="${a.fechaFin != null ? a.fechaFin : '—'}">—</span></td>
+                        <td th:text="${a.ubicacion}">Ubicación</td>
+                        <td>
+                            <div class="cupo-chip" th:classappend="${a.cupoMaximo > 0 && a.inscritos >= a.cupoMaximo ? 'chip-lleno' : (a.cupoMaximo > 0 && a.inscritos >= (a.cupoMaximo * 0.7) ? 'chip-casi' : 'chip-ok')}">
+                                <div class="chip-progress" th:style="'--pct:' + ${a.cupoMaximo > 0 ? (a.inscritos * 100 / a.cupoMaximo) : 0}"></div>
+                                <div class="chip-content">
+                                    <span class="chip-icon">&#128101;</span>
+                                    <span class="chip-numbers">
+                                        <strong th:text="${a.inscritos}">0</strong>
+                                        <span class="chip-sep">/</span>
+                                        <span th:text="${a.cupoMaximo}">0</span>
+                                    </span>
+                                    <span class="chip-tag" th:if="${a.cupoMaximo > 0 && a.inscritos >= a.cupoMaximo}">Lleno</span>
+                                    <span class="chip-tag" th:if="${a.cupoMaximo > 0 && a.inscritos < a.cupoMaximo && a.inscritos >= (a.cupoMaximo * 0.7)}">Casi lleno</span>
+                                    <span class="chip-tag" th:if="${a.cupoMaximo > 0 && a.inscritos < (a.cupoMaximo * 0.7)}">Disponible</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="estado-badge"
+                                  th:classappend="${a.estado == 'ACTIVO' ? 'activo' : (a.estado == 'FINALIZADO' ? 'finalizado' : 'cancelado')}"
+                                  th:text="${a.estado}">ACTIVO</span>
+                        </td>
+                        <td class="acciones-cell">
+                            <th:block th:if="${a.estado == 'ACTIVO'}">
+                                <button class="btn-icon info" th:onclick="'verDetalles(' + ${a.idActividad} + ')'" title="Ver detalle">&#128065;</button>
+                                <button class="btn-icon edit" th:onclick="'abrirModalEditar(' + ${a.idActividad} + ')'" title="Editar">&#9998;</button>
+                                <button class="btn-icon finalizar" th:onclick="'cambiarEstado(' + ${a.idActividad} + ', \'FINALIZADO\')'" title="Finalizar">&#10003;</button>
+                                <button class="btn-icon disable" th:onclick="'cambiarEstado(' + ${a.idActividad} + ', \'CANCELADO\')'" title="Cancelar">&#8856;</button>
+                            </th:block>
+                            <th:block th:if="${a.estado == 'CANCELADO'}">
+                                <button class="btn-icon edit" th:onclick="'abrirModalEditar(' + ${a.idActividad} + ')'" title="Editar">&#9998;</button>
+                                <button class="btn-icon enable" th:onclick="'cambiarEstado(' + ${a.idActividad} + ', \'ACTIVO\')'" title="Reactivar">&#8635;</button>
+                            </th:block>
+                            <th:block th:if="${a.estado == 'FINALIZADO'}">
+                                <button class="btn-icon info" th:onclick="'verDetalles(' + ${a.idActividad} + ')'" title="Ver detalles">&#128065;</button>
+                            </th:block>
+                        </td>
+                    </tr>
+                    <tr th:if="${actividades == null or actividades.empty}" id="sinActividadesRow">
+                        <td colspan="7" style="text-align:center; padding:2rem; color:#999;">
+                            No hay actividades registradas
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginación -->
+        <div id="paginacionActividades" style="display:flex; justify-content:flex-end; align-items:center; padding:1rem 1.5rem; background:#fff; border-top:1px solid #f0f0f0; border-radius:0 0 12px 12px; gap:0.5rem; font-family:'Inter',sans-serif;">
+            <span id="paginacionInfo" style="margin-right:auto; font-size:0.85rem; color:#6b7280;"></span>
+            <button id="btnPrevAct" onclick="cambiarPaginaAct(-1)" disabled style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 0.9rem; border:1px solid #e5e7eb; background:#fff; color:#4b5563; border-radius:8px; font-size:0.82rem; font-weight:500; cursor:pointer;">
+                &#8592; Anterior
+            </button>
+            <div id="paginacionPages" style="display:flex; gap:0.25rem;"></div>
+            <button id="btnNextAct" onclick="cambiarPaginaAct(1)" disabled style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 0.9rem; border:1px solid #e5e7eb; background:#fff; color:#4b5563; border-radius:8px; font-size:0.82rem; font-weight:500; cursor:pointer;">
+                Siguiente &#8594;
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- MODAL CREAR / EDITAR ACTIVIDAD -->
+<div id="modalActividad" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div class="modal-header-content">
+                    <h2 id="modalTitulo" class="modal-title">Nueva Actividad</h2>
+                    <p class="modal-subtitle">Ingresa la información de la actividad</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModal()" title="Cerrar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="formActividad" onsubmit="guardarActividad(event)" class="modal-form">
+                <input type="hidden" id="actividadId">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="nombre" class="form-label">
+                            <span class="label-text">Nombre de la Actividad</span>
+                            <span class="required-indicator">*</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                            <input type="text" id="nombre" name="nombre" class="form-input" placeholder="Ej: Campaña de limpieza del río" required>
+                        </div>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="descripcion" class="form-label"><span class="label-text">Descripción</span></label>
+                        <textarea id="descripcion" name="descripcion" class="form-textarea" placeholder="Describe brevemente la actividad..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="fechaInicio" class="form-label">
+                            <span class="label-text">Fecha de Inicio</span><span class="required-indicator">*</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <input type="date" id="fechaInicio" name="fechaInicio" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fechaFin" class="form-label"><span class="label-text">Fecha de Fin</span></label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <input type="date" id="fechaFin" name="fechaFin" class="form-input">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="ubicacion" class="form-label">
+                            <span class="label-text">Ubicación</span><span class="required-indicator">*</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            <input type="text" id="ubicacion" name="ubicacion" class="form-input" placeholder="Ej: Parque Central, Chiclayo" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="cupoMaximo" class="form-label">
+                            <span class="label-text">Cupo Máximo</span><span class="required-indicator">*</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            <input type="number" id="cupoMaximo" name="cupoMaximo" class="form-input" placeholder="30" min="1" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><span id="btnGuardarTexto">Crear Actividad</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script th:src="@{/js/actividades.js}"></script>
+</body>
+</html>

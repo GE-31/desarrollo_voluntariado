@@ -1,0 +1,423 @@
+/* ═══════════════════════════════════════════════
+   REPORTES – SISTEMA DE VOLUNTARIADO UNIVERSITARIO
+   Dashboard profesional de indicadores y datos
+   ═══════════════════════════════════════════════ */
+
+/* ── HEADER ── */
+.reportes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.reportes-header-text h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.reportes-header-text p {
+    color: #64748b;
+    margin-top: 4px;
+    font-size: 0.95rem;
+}
+
+.btn-export-general {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    transition: all 0.25s ease;
+}
+
+.btn-export-general:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+}
+
+.btn-export-general:active {
+    transform: translateY(0);
+}
+
+.btn-icon {
+    font-size: 1.15rem;
+}
+
+/* ── TARJETAS KPI ── */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 1.25rem 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.kpi-icon {
+    font-size: 2rem;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.kpi-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.kpi-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.kpi-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.kpi-sub {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* Colores por módulo */
+.kpi-voluntarios   { border-left-color: #6366f1; }
+.kpi-voluntarios .kpi-icon { background: #eef2ff; }
+
+.kpi-beneficiarios { border-left-color: #ec4899; }
+.kpi-beneficiarios .kpi-icon { background: #fdf2f8; }
+
+.kpi-actividades   { border-left-color: #f59e0b; }
+.kpi-actividades .kpi-icon { background: #fffbeb; }
+
+.kpi-asistencias   { border-left-color: #10b981; }
+.kpi-asistencias .kpi-icon { background: #ecfdf5; }
+
+.kpi-donaciones    { border-left-color: #3b82f6; }
+.kpi-donaciones .kpi-icon { background: #eff6ff; }
+
+.kpi-inventario    { border-left-color: #8b5cf6; }
+.kpi-inventario .kpi-icon { background: #f5f3ff; }
+
+.kpi-tesoreria     { border-left-color: #14b8a6; }
+.kpi-tesoreria .kpi-icon { background: #f0fdfa; }
+
+/* ── PANEL DE MÓDULOS ── */
+.modulos-panel {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+/* Tabs */
+.modulos-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 0 0.5rem;
+    overflow-x: auto;
+}
+
+.mod-tab {
+    padding: 0.85rem 1.2rem;
+    border: none;
+    background: transparent;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.mod-tab:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+.mod-tab.active {
+    color: #6366f1;
+    border-bottom-color: #6366f1;
+    background: #fff;
+}
+
+/* Toolbar (búsqueda + export) */
+.modulos-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1.2rem;
+    border-bottom: 1px solid #f1f5f9;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 180px;
+    max-width: 350px;
+    padding: 0.6rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    color: #1e293b;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    outline: none;
+}
+
+.btn-export-modulo {
+    padding: 0.6rem 1rem;
+    background: #f1f5f9;
+    color: #334155;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-export-modulo:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+}
+
+/* Content area */
+.modulos-content {
+    padding: 1rem 1.2rem;
+    min-height: 200px;
+    overflow-x: auto;
+}
+
+/* Loading indicator */
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 3rem;
+    color: #94a3b8;
+    font-size: 0.95rem;
+}
+
+.spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #e2e8f0;
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── TABLA DE DATOS ── */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+}
+
+.data-table thead {
+    background: #f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.data-table th {
+    padding: 0.75rem 0.9rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #475569;
+    text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: 0.7rem 0.9rem;
+    font-size: 0.88rem;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.data-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.data-table tbody tr:nth-child(even) {
+    background: #fafbfc;
+}
+
+.data-table tbody tr:nth-child(even):hover {
+    background: #f1f5f9;
+}
+
+/* Badge */
+.badge {
+    display: inline-block;
+    padding: 0.3rem 0.7rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.badge-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-danger {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.badge-info {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.badge-neutral {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* Table footer */
+.table-footer {
+    padding: 0.7rem 1.2rem;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.82rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+/* Empty state */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    color: #94a3b8;
+    text-align: center;
+}
+
+.empty-state .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+}
+
+.empty-state .empty-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #64748b;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px) {
+    .kpi-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .reportes-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .modulos-tabs {
+        padding: 0;
+    }
+
+    .mod-tab {
+        padding: 0.7rem 0.8rem;
+        font-size: 0.82rem;
+    }
+
+    .modulos-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-input {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-card {
+        padding: 1rem;
+    }
+}

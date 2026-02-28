@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div class="dashboard-container">
+
+    <div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+    <main class="main-content">
+        <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+        <!-- TARJETAS / STAT CARDS -->
+        <section class="stats">
+            <div class="card">
+                <div class="icon purple"><i class="fas fa-user-friends"></i></div>
+                <div class="text">
+                    <h2 th:text="${voluntariosActivos}">0</h2>
+                    <p>Voluntarios Activos</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="icon blue"><i class="fas fa-calendar-check"></i></div>
+                <div class="text">
+                    <h2 th:text="${totalActividades}">0</h2>
+                    <p>Actividades</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="icon green"><i class="fas fa-hand-holding-heart"></i></div>
+                <div class="text">
+                    <h2 th:text="${totalDonaciones}">0</h2>
+                    <p>Donaciones</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="icon yellow"><i class="fas fa-users"></i></div>
+                <div class="text">
+                    <h2 th:text="${totalBeneficiarios}">0</h2>
+                    <p>Beneficiarios</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN: Donaciones + Gráficos -->
+        <section class="dashboard-middle">
+            <!-- COLUMNA IZQUIERDA -->
+            <div class="middle-left">
+                <div class="card card-donaciones">
+                    <div class="donacion-content">
+                        <div>
+                            <div class="donacion-monto">
+                                <i class="fas fa-money-bill-wave"></i> S/ <span th:text="${montoDonaciones}">0</span>
+                            </div>
+                            <div class="donacion-titulo">Total Donaciones</div>
+                        </div>
+                        <div class="donacion-icon">
+                            <img th:src="@{/img/money.png}" alt="Donaciones" onerror="this.style.display='none'">
+                            <i class="fas fa-money-bill-wave fa-3x" style="color:rgba(255,255,255,0.3)"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3 class="chart-title">Actividades por Mes</h3>
+                        <span class="chart-badge blue"><i class="fas fa-chart-line"></i> Tendencia</span>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="chartActividadesMes"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMNA DERECHA: Horas Voluntarias -->
+            <div class="chart-card chart-card-right horas-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Horas Voluntarias</h3>
+                </div>
+                <div class="chart-body chart-body-donut">
+                    <div class="horas-donut-row">
+                        <div class="donut-big-wrapper">
+                            <canvas id="chartHorasVoluntarias"></canvas>
+                            <div class="donut-big-center">
+                                <span class="donut-big-total"><span th:text="${totalHorasVoluntarias}">0</span>h</span>
+                                <span class="donut-big-label">Total Actividades</span>
+                            </div>
+                        </div>
+                        <div class="horas-legend" id="horasLegend"></div>
+                    </div>
+                </div>
+                <div class="chart-footer horas-footer">
+                    <div class="proxima-actividad">
+                        <div class="pa-icon pa-icon-green"><i class="fas fa-tree"></i></div>
+                        <div class="pa-info">
+                            <span class="pa-label">Próxima Actividad</span>
+                            <span class="pa-name" th:text="${proximaActividadNombre != null ? proximaActividadNombre : 'Sin actividades próximas'}">Sin actividades próximas</span>
+                        </div>
+                    </div>
+                    <a th:href="@{/actividades}" class="btn-ver green">
+                        Ver Actividades <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script th:src="@{/js/graficos.js}"></script>
+
+<script th:inline="javascript">
+    initDashboardCharts({
+        actLabels:   /*[[${actividadesPorMesLabels}]]*/ [],
+        actData:     /*[[${actividadesPorMesData}]]*/ [],
+        horasLabels: /*[[${horasLabels}]]*/ [],
+        horasData:   /*[[${horasData}]]*/ []
+    });
+</script>
+
+</body>
+</html>

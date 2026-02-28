@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${actividad.nombre} + ' - Detalle'">Detalle Actividad</title>
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/actividades.css}">
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link rel="stylesheet" th:href="@{/css/actividad-detalle.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+
+        <!-- ═══ CABECERA ═══ -->
+        <div class="detalle-header">
+            <a th:href="@{/actividades}" class="btn-back"><i class="fas fa-arrow-left"></i> Volver</a>
+            <div class="detalle-info">
+                <h1 th:text="${actividad.nombre}">Nombre Actividad</h1>
+                <div class="detalle-meta">
+                    <span class="estado-badge" th:classappend="${actividad.estado == 'ACTIVO' ? 'activo' : (actividad.estado == 'FINALIZADO' ? 'finalizado' : 'cancelado')}" th:text="${actividad.estado}">ACTIVO</span>
+                    <span><i class="fas fa-calendar"></i> <span th:text="${actividad.fechaInicio}">2025-01-01</span> — <span th:text="${actividad.fechaFin != null ? actividad.fechaFin : 'Sin fecha fin'}">Sin fecha fin</span></span>
+                    <span><i class="fas fa-map-marker-alt"></i> <span th:text="${actividad.ubicacion}">Ubicación</span></span>
+                    <span><i class="fas fa-users"></i> <span th:text="${actividad.inscritos + '/' + actividad.cupoMaximo}">0/30</span> inscritos</span>
+                </div>
+                <p th:if="${actividad.descripcion != null}" th:text="${actividad.descripcion}" class="detalle-desc"></p>
+            </div>
+        </div>
+
+        <!-- ═══ TABS DE NAVEGACIÓN ═══ -->
+        <div class="detalle-tabs">
+            <button class="tab-btn active" onclick="cambiarTab('recursos')"><i class="fas fa-boxes-stacked"></i> Recursos</button>
+            <button class="tab-btn" onclick="cambiarTab('participantes')"><i class="fas fa-user-group"></i> Participantes</button>
+            <button class="tab-btn" onclick="cambiarTab('beneficiarios')"><i class="fas fa-hand-holding-heart"></i> Beneficiarios</button>
+            <button class="tab-btn" onclick="cambiarTab('localidades')"><i class="fas fa-location-dot"></i> Localidades</button>
+        </div>
+
+        <!-- ═══════════════════════════════════
+             TAB: RECURSOS NECESARIOS
+        ═══════════════════════════════════ -->
+        <div id="tab-recursos" class="tab-content active">
+            <div class="tab-header">
+                <div>
+                    <h2>Recursos Necesarios</h2>
+                    <p>Planifica los recursos requeridos para esta acción social</p>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="abrirModalRecurso()"><i class="fas fa-plus"></i> Agregar Recurso</button>
+            </div>
+            <div class="detalle-table-wrap">
+                <table class="detalle-table">
+                    <thead>
+                        <tr>
+                            <th>Recurso</th>
+                            <th>Tipo</th>
+                            <th>Requerido</th>
+                            <th>Conseguido</th>
+                            <th>Avance</th>
+                            <th>Prioridad</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-recursos">
+                        <tr><td colspan="7" class="empty-msg">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════
+             TAB: PARTICIPANTES (VOLUNTARIOS)
+        ═══════════════════════════════════ -->
+        <div id="tab-participantes" class="tab-content">
+            <div class="tab-header">
+                <div>
+                    <h2>Participantes</h2>
+                    <p>Voluntarios asignados a esta actividad</p>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="abrirModalParticipante()"><i class="fas fa-plus"></i> Asignar Voluntario</button>
+            </div>
+            <div class="detalle-table-wrap">
+                <table class="detalle-table">
+                    <thead>
+                        <tr>
+                            <th>Voluntario</th>
+                            <th>DNI</th>
+                            <th>Carrera</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-participantes">
+                        <tr><td colspan="4" class="empty-msg">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════
+             TAB: BENEFICIARIOS
+        ═══════════════════════════════════ -->
+        <div id="tab-beneficiarios" class="tab-content">
+            <div class="tab-header">
+                <div>
+                    <h2>Beneficiarios</h2>
+                    <p>Personas o comunidades atendidas en esta acción social</p>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="abrirModalBeneficiario()"><i class="fas fa-plus"></i> Vincular Beneficiario</button>
+            </div>
+            <div class="detalle-table-wrap">
+                <table class="detalle-table">
+                    <thead>
+                        <tr>
+                            <th>Beneficiario</th>
+                            <th>DNI</th>
+                            <th>Tipo</th>
+                            <th>Observación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-beneficiarios">
+                        <tr><td colspan="5" class="empty-msg">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════
+             TAB: LOCALIDADES
+        ═══════════════════════════════════ -->
+        <div id="tab-localidades" class="tab-content">
+            <div class="tab-header">
+                <div>
+                    <h2>Localidades</h2>
+                    <p>Lugares donde se realiza la acción social</p>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="abrirModalLugar()"><i class="fas fa-plus"></i> Registrar Localidad</button>
+            </div>
+            <div id="lista-localidades" class="localidades-grid">
+                <!-- Se carga por JS -->
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<!-- ═══════════════════════════════════════════
+     MODALES
+═══════════════════════════════════════════ -->
+
+<!-- MODAL: Agregar Recurso -->
+<div id="modalRecurso" class="modal-overlay" style="display:none">
+    <div class="modal-container modal-sm">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div class="modal-header-content"><h2 class="modal-title">Agregar Recurso</h2></div>
+                <button class="modal-close-btn" onclick="cerrarModalRecurso()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formRecurso" onsubmit="guardarRecurso(event)" class="modal-form">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Recurso</span><span class="required-indicator">*</span></label>
+                        <select id="selRecurso" class="form-input" required>
+                            <option value="">Seleccione un recurso</option>
+                            <th:block th:each="r : ${recursos}">
+                                <option th:value="${r.idRecurso}" th:text="${r.nombre + ' (' + (r.unidadMedida != null ? r.unidadMedida : 'Unidad') + ')'}"></option>
+                            </th:block>
+                        </select>
+                        <small style="margin-top:0.3rem;display:block"><a href="#" onclick="abrirModalNuevoRecurso();return false" style="color:#667eea">+ Crear nuevo recurso</a></small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Cantidad Requerida</span><span class="required-indicator">*</span></label>
+                        <input type="number" id="cantidadRequerida" class="form-input" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Prioridad</span></label>
+                        <select id="prioridadRecurso" class="form-input">
+                            <option value="ALTA">Alta</option>
+                            <option value="MEDIA" selected>Media</option>
+                            <option value="BAJA">Baja</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Observación</span></label>
+                        <input type="text" id="obsRecurso" class="form-input" placeholder="Nota opcional">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalRecurso()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Nuevo Recurso (catálogo) -->
+<div id="modalNuevoRecurso" class="modal-overlay" style="display:none">
+    <div class="modal-container modal-sm">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div class="modal-header-content"><h2 class="modal-title">Nuevo Recurso</h2></div>
+                <button class="modal-close-btn" onclick="document.getElementById('modalNuevoRecurso').style.display='none'"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formNuevoRecurso" onsubmit="crearRecurso(event)" class="modal-form">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Nombre</span><span class="required-indicator">*</span></label>
+                        <input type="text" id="nrNombre" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Unidad de Medida</span></label>
+                        <input type="text" id="nrUnidad" class="form-input" placeholder="Ej: kg, litro, unidad">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Tipo</span></label>
+                        <select id="nrTipo" class="form-input">
+                            <option value="">Seleccione</option>
+                            <option value="MATERIAL">Material</option>
+                            <option value="ALIMENTO">Alimento</option>
+                            <option value="EQUIPO">Equipo</option>
+                            <option value="MEDICAMENTO">Medicamento</option>
+                            <option value="OTRO">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Descripción</span></label>
+                        <input type="text" id="nrDesc" class="form-input">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalNuevoRecurso').style.display='none'">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Asignar Participante -->
+<div id="modalParticipante" class="modal-overlay" style="display:none">
+    <div class="modal-container modal-sm">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div class="modal-header-content"><h2 class="modal-title">Asignar Voluntario</h2></div>
+                <button class="modal-close-btn" onclick="cerrarModalParticipante()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formParticipante" onsubmit="guardarParticipante(event)" class="modal-form">
+                <input type="hidden" id="selVoluntario" value="">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Voluntario</span><span class="required-indicator">*</span></label>
+                        <div class="search-select-container" id="voluntarioSearchContainer">
+                            <div class="search-select-input-wrapper">
+                                <i class="fas fa-search search-select-icon"></i>
+                                <input type="text" id="buscarVoluntarioInput" class="form-input search-select-input" placeholder="Buscar por nombre o DNI..." autocomplete="off">
+                                <button type="button" class="search-select-clear" id="clearVoluntarioBtn" style="display:none" title="Limpiar">&times;</button>
+                            </div>
+                            <div class="search-select-dropdown" id="voluntarioDropdown"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalParticipante()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnAsignarVol" disabled style="opacity:0.5">Asignar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Vincular Beneficiario -->
+<div id="modalBeneficiario" class="modal-overlay" style="display:none">
+    <div class="modal-container modal-sm">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div class="modal-header-content"><h2 class="modal-title">Vincular Beneficiario</h2></div>
+                <button class="modal-close-btn" onclick="cerrarModalBeneficiario()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formBeneficiario" onsubmit="guardarBeneficiario(event)" class="modal-form">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Beneficiario</span><span class="required-indicator">*</span></label>
+                        <div class="search-select-container" id="beneficiarioSearchContainer">
+                            <div class="search-select-input-wrapper">
+                                <i class="fas fa-search search-select-icon"></i>
+                                <input type="text" id="buscarBeneficiarioInput" class="form-input search-select-input" placeholder="Buscar por nombre o DNI..." autocomplete="off">
+                                <button type="button" class="search-select-clear" id="clearBeneficiarioBtn" style="display:none" title="Limpiar">&times;</button>
+                            </div>
+                            <div class="search-select-dropdown" id="beneficiarioDropdown"></div>
+                        </div>
+                        <input type="hidden" id="selBeneficiario" value="">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Observación</span></label>
+                        <input type="text" id="obsBeneficiario" class="form-input" placeholder="Nota opcional">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="abrirModalNuevoBeneficiario()" style="margin-right:auto">
+                        <i class="fas fa-user-plus"></i> Nuevo Beneficiario
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalBeneficiario()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnVincularBen" disabled style="opacity:0.5">Vincular</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Nuevo Beneficiario (registro rápido) -->
+<div id="modalNuevoBeneficiario" class="modal-overlay" style="display:none; z-index:1100">
+    <div class="modal-container" style="max-width:600px">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div class="modal-header-content"><h2 class="modal-title">Registrar Nuevo Beneficiario</h2></div>
+                <button class="modal-close-btn" onclick="cerrarModalNuevoBeneficiario()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formNuevoBeneficiario" onsubmit="guardarNuevoBeneficiario(event)" class="modal-form">
+                <div class="form-grid">
+                    <!-- DNI primero con botón Buscar -->
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">DNI</span><span class="required-indicator">*</span></label>
+                        <div style="display:flex; gap:0.5rem;">
+                            <input type="text" id="nbDni" class="form-input" required maxlength="8" pattern="[0-9]{8}" placeholder="12345678" style="flex:1">
+                            <button type="button" class="btn-search-dni" onclick="buscarDniBeneficiario()" title="Buscar datos en API"
+                                style="padding:0.5rem 0.8rem; background:#22c55e; color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.9rem; white-space:nowrap;">
+                                🔍 Buscar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Nombres</span><span class="required-indicator">*</span></label>
+                        <input type="text" id="nbNombres" class="form-input" required placeholder="Se llenará con el DNI">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Apellidos</span><span class="required-indicator">*</span></label>
+                        <input type="text" id="nbApellidos" class="form-input" required placeholder="Se llenará con el DNI">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Teléfono</span></label>
+                        <input type="text" id="nbTelefono" class="form-input" maxlength="15" placeholder="Ej: 987654321">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Tipo</span><span class="required-indicator">*</span></label>
+                        <select id="nbTipo" class="form-input" required>
+                            <option value="">Seleccione</option>
+                            <option value="INDIVIDUAL">Individual</option>
+                            <option value="FAMILIA">Familia</option>
+                            <option value="COMUNIDAD">Comunidad</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Necesidad Principal</span></label>
+                        <select id="nbNecesidad" class="form-input">
+                            <option value="">Seleccione</option>
+                            <option value="ALIMENTACIÓN">Alimentación</option>
+                            <option value="SALUD">Salud</option>
+                            <option value="EDUCACIÓN">Educación</option>
+                            <option value="VIVIENDA">Vivienda</option>
+                            <option value="OTRO">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Dirección</span></label>
+                        <input type="text" id="nbDireccion" class="form-input" placeholder="Calle, referencia, etc.">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalNuevoBeneficiario()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Registrar y Seleccionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Registrar Localidad -->
+<div id="modalLugar" class="modal-overlay" style="display:none">
+    <div class="modal-container modal-sm">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div class="modal-header-content"><h2 class="modal-title">Registrar Localidad</h2></div>
+                <button class="modal-close-btn" onclick="cerrarModalLugar()"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="formLugar" onsubmit="guardarLugar(event)" class="modal-form">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Departamento</span><span class="required-indicator">*</span></label>
+                        <input type="text" id="lugarDepartamento" class="form-input" required placeholder="Ej: Lambayeque">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Provincia</span><span class="required-indicator">*</span></label>
+                        <input type="text" id="lugarProvincia" class="form-input" required placeholder="Ej: Chiclayo">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span class="label-text">Distrito</span><span class="required-indicator">*</span></label>
+                        <input type="text" id="lugarDistrito" class="form-input" required placeholder="Ej: La Victoria">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label"><span class="label-text">Dirección de Referencia</span></label>
+                        <input type="text" id="lugarDireccion" class="form-input" placeholder="Calle, referencia, etc.">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalLugar()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="idActividad" th:value="${actividad.idActividad}">
+<input type="hidden" id="cupoMaximo" th:value="${actividad.cupoMaximo}">
+<input type="hidden" id="inscritos" th:value="${actividad.inscritos}">
+
+<script th:src="@{/js/dni-api.js}"></script>
+<script th:src="@{/js/actividad-detalle.js}"></script>
+</body>
+</html>

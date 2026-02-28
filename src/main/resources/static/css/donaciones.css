@@ -1,0 +1,620 @@
+/* ===================================================================
+   DONACIONES - DASHBOARD PRO UI  
+   Tema: Azul violeta elegante (#667eea / #764ba2)
+=================================================================== */
+
+:root {
+    --primary: #667eea;
+    --primary-hover: #5568d3;
+    --danger: #ef4444;
+    --success: #10b981;
+    --text: #222;
+    --text-secondary: #666;
+    --border: #e2e8f0;
+    --radius: 12px;
+
+    /* Modal */
+    --modal-bg: #ffffff;              /* Más blanco */
+    --modal-border: #dbe2f0;
+}
+
+/* ======================= HEADER ======================= */
+.donaciones-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.4rem 1rem;
+    background: #fff;
+    border-radius: var(--radius);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.donaciones-header h1 {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.donaciones-header p {
+    margin: 3px 0 0;
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+}
+
+/* ======================= BOTÓN NUEVA DONACIÓN ======================= */
+.btn-add {
+    background: var(--primary);
+    color: #fff;
+    padding: 0.7rem 1.3rem;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-add:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+/* ======================= TABLA ======================= */
+.donaciones-table {
+    background: #fff;
+    border-radius: 12px;
+    overflow-x: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.donaciones-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.donaciones-table th,
+.donaciones-table td {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.donaciones-table thead {
+    background: #f6f7fb;
+}
+
+.donaciones-table thead th {
+    font-weight: 600;
+    color: #475569;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.donaciones-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s ease;
+}
+
+.donaciones-table tbody tr:hover {
+    background: #f9fbfd;
+}
+
+.donaciones-filtros {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.9rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    padding: 0.9rem 1rem;
+}
+
+.donaciones-filtros label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.donaciones-filtros input {
+    height: 38px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0 0.7rem;
+    font-size: 0.9rem;
+    color: #111827;
+    background: #fff;
+    outline: none;
+}
+
+.donaciones-filtros input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
+}
+
+.table-pagination {
+    margin-top: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Tags */
+.tipo-badge {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.tipo-dinero { background: #d1fae5; color: #047857; }
+.tipo-objeto { background: #e0e7ff; color: #4338ca; }
+
+/* ======================= ICONOS ACCIONES ======================= */
+.acciones-cell {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    transition: 0.25s;
+    font-size: 1.2rem;
+}
+
+/* Editar */
+.btn-icon.edit {
+    background: #e3f2fd;
+    color: #1e40af;
+}
+.btn-icon.edit:hover {
+    background: #1e40af;
+    color: #fff;
+}
+
+/* Eliminar */
+.btn-icon.delete {
+    background: #fde2e2;
+    color: #c53030;
+}
+.btn-icon.delete:hover {
+    background: #c53030;
+    color: #fff;
+}
+
+/* Confirmar (enable) */
+.btn-icon.enable {
+    background: #d1fae5;
+    color: #047857;
+}
+.btn-icon.enable:hover {
+    background: #047857;
+    color: #fff;
+}
+
+/* Anular (cancel) */
+.btn-icon.cancel {
+    background: #fef3c7;
+    color: #b45309;
+}
+.btn-icon.cancel:hover {
+    background: #b45309;
+    color: #fff;
+}
+
+/* ======================= BADGES DE ESTADO ======================= */
+.badge {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    border-radius: 999px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.badge.success {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.badge.warning {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.badge.error {
+    background: #fde2e2;
+    color: #c53030;
+}
+
+.tag {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    border-radius: 999px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+.tag.dinero {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.tag.objeto {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.alert-error {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #fecaca;
+}
+
+.alert-info {
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    border: 1px solid #bae6fd;
+}
+
+.badge-dni {
+    background: #f1f5f9;
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.item-obs {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.no-data {
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+/* ======================= BOTONES GENERALES ======================= */
+.btn {
+    padding: 0.7rem 1.35rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: 0.25s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #5568d3, #653a91);
+    transform: translateY(-2px);
+}
+
+/* ============================================================
+   MODAL DONACIONES — Glassmorphism blanco PRO
+============================================================ */
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,0.60);
+    backdrop-filter: blur(6px);
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.modal-container {
+    width: 640px;
+    max-width: 95%;
+    max-height: 92vh;
+    animation: modalPop 0.25s ease-out;
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: translateY(20px) scale(.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-card {
+    background: var(--modal-bg);
+    border: 1px solid var(--modal-border);
+    border-radius: 22px;
+    padding: 2rem;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18);
+    max-height: 92vh;
+    overflow-y: auto;
+}
+
+/* Header */
+.modal-header-enhanced {
+    margin-bottom: 1.4rem;
+}
+
+.modal-header-enhanced h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: #111;
+}
+
+.modal-header-enhanced p {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+/* Close button */
+.modal-close-btn {
+    background: none;
+    border: none;
+    float: right;
+    font-size: 1.45rem;
+    margin-top: -10px;
+    cursor: pointer;
+    color: #777;
+    transition: 0.2s;
+}
+.modal-close-btn:hover {
+    transform: scale(1.2);
+    color: var(--danger);
+}
+
+/* Form */
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.full-width {
+    grid-column: span 2;
+}
+
+.form-group label {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #555;
+}
+
+.form-input, .form-textarea, select {
+    width: 100%;
+    padding: 0.7rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #fff;
+    transition: 0.25s;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.25);
+}
+
+.inventory-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 0.25rem;
+}
+
+.inventory-help {
+    margin: 0 0 0.9rem;
+    font-size: 0.85rem;
+    color: #475569;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 10px;
+    padding: 0.6rem 0.75rem;
+}
+
+/* Footer */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 1.4rem;
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    border: 1px solid #d3d8e0;
+}
+.btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+@media (max-width: 760px) {
+    .modal-container {
+        width: 96%;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .full-width {
+        grid-column: span 1;
+    }
+}
+
+/* ===================================================================
+   QUICK-ADD ITEM BUTTON (dentro del modal de donaciones)
+=================================================================== */
+.input-with-action {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+.input-with-action select {
+    flex: 1;
+}
+.btn-quick-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-quick-add:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+}
+.btn-quick-add i {
+    font-size: 0.75rem;
+}
+
+/* ======================= DONATION MODE BOX ======================= */
+.donation-mode-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.82rem;
+}
+
+/* ======================= BUSCADOR DE DONANTE ======================= */
+.donante-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 999;
+}
+.donante-search-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+}
+.donante-search-item:last-child {
+    border-bottom: none;
+}
+.donante-search-item:hover {
+    background: #f0f4ff;
+}
+.donante-search-item .donante-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #eef2ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.donante-search-item .donante-info {
+    flex: 1;
+    min-width: 0;
+}
+.donante-search-item .donante-nombre {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.donante-search-item .donante-detalle {
+    font-size: 0.78rem;
+    color: #6b7280;
+    margin-top: 2px;
+}
+.donante-search-no-results {
+    padding: 14px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+.donante-selected-info {
+    margin-top: 8px;
+    padding: 8px 14px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.86rem;
+    color: #065f46;
+    font-weight: 500;
+}
+.btn-donante-clear {
+    background: none;
+    border: none;
+    color: #6b7280;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+.btn-donante-clear:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}

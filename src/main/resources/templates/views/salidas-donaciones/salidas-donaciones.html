@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Salidas de Donaciones - Sistema de Voluntariado</title>
+    <link rel="stylesheet" th:href="@{/css/sidebar.css}">
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/salidas-donaciones.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div th:insert="~{fragments/sidebar :: sidebar}"></div>
+
+<main class="main-content">
+    <div th:insert="~{fragments/topbar :: topbar}"></div>
+
+    <div class="content-body">
+        <!-- ═══════════ HEADER ═══════════ -->
+        <div class="salidas-header">
+            <div class="salidas-header-info">
+                <h1><i class="fa-solid fa-arrow-right-from-bracket"></i> Salidas de Donaciones</h1>
+                <p>Asigna y distribuye donaciones confirmadas a campañas y actividades</p>
+            </div>
+            <button class="btn btn-primary" onclick="abrirModalSalida()">
+                <i class="fa-solid fa-circle-plus"></i> Registrar Salida
+            </button>
+        </div>
+
+        <!-- ═══════════ TARJETAS RESUMEN ═══════════ -->
+        <div class="salidas-summary" th:if="${salidas != null and !salidas.empty}">
+            <div class="summary-card summary-total">
+                <div class="summary-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+                <div>
+                    <span class="summary-label">Total Salidas</span>
+                    <span class="summary-value" th:text="${salidas.size()}">0</span>
+                </div>
+            </div>
+            <div class="summary-card summary-dinero">
+                <div class="summary-icon"><i class="fa-solid fa-coins"></i></div>
+                <div>
+                    <span class="summary-label">Salidas en Dinero</span>
+                    <span class="summary-value" th:text="${#lists.size(salidas.?[tipoSalida == 'DINERO'])}">0</span>
+                </div>
+            </div>
+            <div class="summary-card summary-especie">
+                <div class="summary-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <div>
+                    <span class="summary-label">Salidas en Especie</span>
+                    <span class="summary-value" th:text="${#lists.size(salidas.?[tipoSalida == 'ESPECIE'])}">0</span>
+                </div>
+            </div>
+            <div class="summary-card summary-confirmadas">
+                <div class="summary-icon"><i class="fa-solid fa-circle-check"></i></div>
+                <div>
+                    <span class="summary-label">Confirmadas</span>
+                    <span class="summary-value" th:text="${#lists.size(salidas.?[estado == 'CONFIRMADO'])}">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerta de error -->
+        <div th:if="${salidaError != null}" class="alert-error" style="margin:12px 0 0 0;">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span th:text="${salidaError}"></span>
+        </div>
+
+        <!-- ═══════════ FILTRO / BÚSQUEDA ═══════════ -->
+        <div class="salidas-filtros">
+            <div class="filtros-row">
+                <div class="filtro-group">
+                    <label for="buscarSalidas"><i class="fa-solid fa-magnifying-glass"></i> Buscar</label>
+                    <input type="text" id="buscarSalidas" placeholder="Campaña, donante, descripcion...">
+                </div>
+                <div class="filtro-group">
+                    <label for="filtroTipo">Tipo</label>
+                    <select id="filtroTipo" onchange="filtrarSalidas()">
+                        <option value="">Todos</option>
+                        <option value="DINERO">Dinero</option>
+                        <option value="ESPECIE">En Especie</option>
+                    </select>
+                </div>
+                <div class="filtro-group">
+                    <label for="filtroEstado">Estado</label>
+                    <select id="filtroEstado" onchange="filtrarSalidas()">
+                        <option value="">Todos</option>
+                        <option value="PENDIENTE">Pendiente</option>
+                        <option value="CONFIRMADO">Confirmado</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ TABLA ═══════════ -->
+        <div class="salidas-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Monto / Cantidad</th>
+                        <th>Donación Origen</th>
+                        <th>Campaña Destino</th>
+                        <th>Descripción</th>
+                        <th>Registrado por</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodySalidas">
+                    <th:block th:if="${salidas != null and !salidas.empty}">
+                    <tr th:each="s : ${salidas}" class="salida-row"
+                        th:data-tipo="${s.tipoSalida}"
+                        th:data-estado="${s.estado != null ? s.estado.toUpperCase() : 'PENDIENTE'}">
+                        <!-- Tipo -->
+                        <td>
+                            <span class="tag"
+                                  th:classappend="${s.tipoSalida == 'DINERO' ? 'dinero' : 'especie'}"
+                                  th:text="${s.tipoSalida == 'DINERO' ? 'DINERO' : 'EN ESPECIE'}">DINERO</span>
+                        </td>
+                        <!-- Monto / Cantidad -->
+                        <td>
+                            <th:block th:if="${s.tipoSalida == 'DINERO'}">
+                                <strong th:text="'S/ ' + ${s.cantidad}"></strong>
+                            </th:block>
+                            <th:block th:if="${s.tipoSalida != 'DINERO'}">
+                                <strong>
+                                    <span th:text="${s.cantidadItem != null ? s.cantidadItem : s.cantidad}"></span>
+                                    <span th:text="${s.itemUnidadMedida != null ? s.itemUnidadMedida : 'unidad'}"></span>
+                                </strong>
+                                <div class="item-detail" th:text="${s.itemNombre != null ? s.itemNombre : 'Item no especificado'}"></div>
+                            </th:block>
+                        </td>
+                        <!-- Donación Origen -->
+                        <td>
+                            <div class="donacion-origin">
+                                <span class="origin-id" th:text="'#' + ${s.idDonacion}"></span>
+                                <span class="origin-donante" th:text="${s.donanteNombre}"></span>
+                                <div class="origin-monto" th:if="${s.tipoSalida == 'DINERO'}" th:text="'S/ ' + ${s.donacionCantidad}"></div>
+                            </div>
+                        </td>
+                        <!-- Campaña Destino -->
+                        <td>
+                            <div class="campana-destino">
+                                <i class="fa-solid fa-bullhorn"></i>
+                                <span th:text="${s.actividadNombre}"></span>
+                            </div>
+                        </td>
+                        <!-- Descripción -->
+                        <td>
+                            <span class="desc-text" th:text="${s.descripcion != null ? s.descripcion : '-'}"></span>
+                        </td>
+                        <!-- Registrado por -->
+                        <td th:text="${s.usuarioRegistro}"></td>
+                        <!-- Fecha -->
+                        <td th:text="${s.registradoEn}"></td>
+                        <!-- Estado -->
+                        <td th:with="estadoRaw=${s.estado},
+                                     estadoDisplay=${estadoRaw == null or estadoRaw.trim() == '' ? 'PENDIENTE' : estadoRaw.toUpperCase()},
+                                     badgeClass=${estadoDisplay == 'CONFIRMADO' ? 'success' : (estadoDisplay == 'ANULADO' ? 'error' : 'warning')}">
+                            <span class="badge" th:classappend="${badgeClass}" th:text="${estadoDisplay}">PENDIENTE</span>
+                        </td>
+                        <!-- Acciones -->
+                        <td class="acciones-cell">
+                            <button class="btn-icon edit" th:onclick="'editarSalida(' + ${s.idSalida} + ')'" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <th:block th:if="${s.estado == null or s.estado.toUpperCase() == 'PENDIENTE'}">
+                                <button class="btn-icon enable" th:onclick="'cambiarEstadoSalida(' + ${s.idSalida} + ', \'CONFIRMADO\')'" title="Confirmar salida">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn-icon cancel" th:onclick="'anularSalida(' + ${s.idSalida} + ')'" title="Anular salida">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            </th:block>
+                            <th:block th:if="${s.estado != null and s.estado.toUpperCase() == 'CONFIRMADO'}">
+                                <button class="btn-icon cancel" th:onclick="'anularSalida(' + ${s.idSalida} + ')'" title="Anular salida">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            </th:block>
+                        </td>
+                    </tr>
+                    </th:block>
+                    <tr th:if="${salidas == null or salidas.empty}">
+                        <td colspan="9" class="no-data">
+                            <i class="fa-solid fa-inbox" style="font-size:2rem; margin-bottom:8px; display:block; color:#cbd5e1;"></i>
+                            No hay salidas de donaciones registradas
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ═══════════ PAGINACIÓN ═══════════ -->
+        <div id="salidasPaginacion" class="table-pagination" style="display:none;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btnPaginaAnteriorS">Anterior</button>
+            <span id="textoPaginacionSalidas"></span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnPaginaSiguienteS">Siguiente</button>
+        </div>
+    </div>
+</main>
+
+<!-- ════════════════════════════════════════════════════════════════
+     MODAL REGISTRAR / EDITAR SALIDA DE DONACIÓN
+════════════════════════════════════════════════════════════════ -->
+<div id="modalSalida" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-card">
+            <div class="modal-header-enhanced">
+                <div>
+                    <h2 id="tituloModalSalida"><i class="fa-solid fa-arrow-right-from-bracket"></i> Registrar Salida</h2>
+                    <p>Asigna una donación confirmada a una campaña</p>
+                </div>
+                <button class="modal-close-btn" onclick="cerrarModalSalida()">&#10005;</button>
+            </div>
+
+            <form id="formSalida" th:action="@{/salidas-donaciones}" method="POST">
+                <input type="hidden" id="idSalida" name="idSalida">
+                <input type="hidden" id="accionSalida" name="accion" value="registrar">
+                <input type="hidden" id="tipoSalidaHidden" name="tipoSalida" value="DINERO">
+
+                <div class="form-grid">
+                    <!-- Selección de Donación Origen -->
+                    <section class="form-group full-width donation-mode-box">
+                        <div class="inventory-section-title">
+                            <i class="fa-solid fa-hand-holding-heart"></i>
+                            <span>Donación Origen</span>
+                        </div>
+                        <p class="section-help">Busca por nombre del donante, ID de donación o monto</p>
+                        <div class="form-group full-width">
+                            <label>Donación disponible *</label>
+                            <input type="hidden" id="idDonacion" name="idDonacion">
+                            <div class="autocomplete-wrapper" id="donacionAutocompleteWrapper">
+                                <div class="autocomplete-input-container">
+                                    <i class="fa-solid fa-magnifying-glass autocomplete-icon"></i>
+                                    <input type="text" id="buscarDonacion" class="form-input autocomplete-input"
+                                           placeholder="Buscar por donante, ID o monto..." autocomplete="off">
+                                    <button type="button" id="btnLimpiarDonacion" class="autocomplete-clear" style="display:none;" title="Limpiar selección">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <div id="donacionResultados" class="autocomplete-dropdown"></div>
+                            </div>
+                            <div id="donacionSeleccionada" class="donacion-selected-badge" style="display:none;">
+                                <span id="donacionSelectedText"></span>
+                            </div>
+                        </div>
+                        <!-- Info de la donación seleccionada -->
+                        <div id="infoDonacion" class="donacion-info-box" style="display:none;">
+                            <div class="info-row">
+                                <span class="info-label">Tipo:</span>
+                                <span id="infoDonTipo" class="info-value"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Monto original:</span>
+                                <span id="infoDonMonto" class="info-value"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Donante:</span>
+                                <span id="infoDonDonante" class="info-value"></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Origen:</span>
+                                <span id="infoDonActividad" class="info-value"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Campaña destino -->
+                    <div class="form-group full-width">
+                        <label><i class="fa-solid fa-bullhorn"></i> Campaña / Actividad Destino *</label>
+                        <select id="actividadDestino" name="actividad" class="form-input" required>
+                            <option value="">Seleccione campaña destino</option>
+                        </select>
+                    </div>
+
+                    <!-- Monto a asignar -->
+                    <div class="form-group">
+                        <label id="labelCantidadSalida">Monto a asignar (S/) *</label>
+                        <input type="number" id="cantidadSalida" name="cantidad" class="form-input" min="0.01" step="0.01" required>
+                    </div>
+
+                    <!-- Sección Especie (solo visible cuando donación es en especie) -->
+                    <div id="seccionEspecieSalida" class="form-group" style="display:none;">
+                        <label>Cantidad de items</label>
+                        <input type="number" id="cantidadItemSalida" name="cantidadItem" class="form-input" min="0.01" step="0.01">
+                        <input type="hidden" id="idItemSalida" name="idItem">
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="form-group full-width">
+                        <label>Descripción / Justificación</label>
+                        <textarea id="descripcionSalida" name="descripcion" class="form-textarea" rows="3"
+                                  placeholder="Describe el motivo de la asignación a esta campaña..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalSalida()">Cancelar</button>
+                    <button type="submit" id="btnGuardarSalida" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane"></i> Registrar Salida
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/js/salidas-donaciones.js}"></script>
+</body>
+</html>

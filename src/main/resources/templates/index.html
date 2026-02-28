@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Voluntariado</title>
+    <script>
+        // Redirigir al login (Spring Security se encarga de enviar al dashboard si ya está autenticado)
+        (function() {
+            var path = window.location.pathname;
+            var ctx = path.endsWith('/') ? path.slice(0, -1) : path;
+            window.location.href = ctx + '/login';
+        })();
+    </script>
+</head>
+<body>
+    <p>Redirigiendo...</p>
+</body>
+</html>
