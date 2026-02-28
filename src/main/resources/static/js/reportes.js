@@ -205,14 +205,13 @@ function renderAsistencias(data) {
 
 function renderBeneficiarios(data) {
     let html = `<table class="data-table"><thead><tr>
-        <th>#</th><th>Nombres</th><th>Apellidos</th><th>DNI</th><th>Teléfono</th><th>Distrito</th><th>Tipo</th><th>Necesidad</th><th>Estado</th>
+        <th>#</th><th>Organización</th><th>Dirección</th><th>Distrito</th><th>Necesidad Principal</th><th>Nombre y Apellido del Responsable</th><th>Estado</th>
     </tr></thead><tbody>`;
     data.forEach((b, i) => {
         html += `<tr>
             <td>${i + 1}</td><td>${fmt(b.organizacion)}</td><td>${fmt(b.direccion)}</td>
-            <td>${fmt(b.distrito)}</td><td>${fmt(b.necesidadPrincipal)}</td><td>${fmt(b.observaciones)}</td>
-            <td>${fmt(b.nombreResponsable)}</td><td>${fmt(b.apellidosResponsable)}</td>
-            <td>${fmt(b.dni)}</td><td>${fmt(b.telefono)}</td>
+            <td>${fmt(b.distrito)}</td><td>${fmt(b.necesidadPrincipal)}</td>
+            <td>${fmt(b.nombreResponsable)} ${fmt(b.apellidosResponsable)}</td>
             <td>${estadoBadge(b.estado)}</td>
         </tr>`;
     });

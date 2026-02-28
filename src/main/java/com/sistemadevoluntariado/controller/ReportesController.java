@@ -245,7 +245,7 @@ public class ReportesController {
                 montoCell.setCellValue(d.getCantidad() != null ? d.getCantidad().doubleValue() : 0);
                 montoCell.setCellStyle(moneyStyle);
                 row.createCell(3).setCellValue(safe(d.getTipoDonante()));
-                row.createCell(4).setCellValue(safe(d.getNombreDonante()));
+                row.createCell(4).setCellValue(safe(d.getDonanteNombre()));
                 row.createCell(5).setCellValue(safe(d.getCorreoDonante()));
                 row.createCell(6).setCellValue(safe(d.getTelefonoDonante()));
                 row.createCell(7).setCellValue(safe(d.getActividad()));
@@ -479,34 +479,29 @@ public class ReportesController {
     }
 
     private void crearHojaBeneficiarios(Workbook wb, CellStyle titleStyle, CellStyle subtitleStyle, CellStyle headerStyle) {
-    Sheet sheet = wb.createSheet("Beneficiarios");
-    List<Beneficiario> lista = reportesService.listarBeneficiarios();
+        Sheet sheet = wb.createSheet("Beneficiarios");
+        List<Beneficiario> lista = reportesService.listarBeneficiarios();
 
-    int r = 0;
-    crearTitulo(sheet, r++, titleStyle, "LISTADO DE BENEFICIARIOS", 8);
-    crearSubtitulo(sheet, r++, subtitleStyle, lista.size() + " registros | Generado: " + LocalDate.now());
-    r++;
+        int r = 0;
+        crearTitulo(sheet, r++, titleStyle, "LISTADO DE BENEFICIARIOS", 7);
+        crearSubtitulo(sheet, r++, subtitleStyle, lista.size() + " registros | Generado: " + LocalDate.now());
+        r++;
 
-    String[] headers = {"#", "Organización", "Responsable", "DNI", "Teléfono", "Distrito", "Necesidad", "Estado"};
-    crearCabecera(sheet, r++, headerStyle, headers);
+        String[] headers = {"#", "Organización", "Dirección", "Distrito", "Necesidad Principal", "Nombre y Apellido del Responsable", "Estado"};
+        crearCabecera(sheet, r++, headerStyle, headers);
 
-    int n = 1;
-    for (Beneficiario b : lista) {
-        Row row = sheet.createRow(r++);
-        row.createCell(0).setCellValue(n++);
-        row.createCell(1).setCellValue(safe(b.getOrganizacion()));
-        row.createCell(2).setCellValue(
-            safe(b.getNombreResponsable()) + " " + safe(b.getApellidosResponsable())
-        );
-        row.createCell(3).setCellValue(safe(b.getDni()));
-        row.createCell(4).setCellValue(safe(b.getTelefono()));
-        row.createCell(5).setCellValue(safe(b.getDistrito()));
-        row.createCell(6).setCellValue(safe(b.getNecesidadPrincipal()));
-        row.createCell(7).setCellValue(safe(b.getEstado()));
+        int n = 1;
+        for (Beneficiario b : lista) {
+            Row row = sheet.createRow(r++);
+            row.createCell(0).setCellValue(n++);
+            row.createCell(1).setCellValue(safe(b.getOrganizacion()));
+            row.createCell(2).setCellValue(safe(b.getDireccion()));
+            row.createCell(3).setCellValue(safe(b.getDistrito()));
+            row.createCell(4).setCellValue(safe(b.getNecesidadPrincipal()));
+            row.createCell(5).setCellValue(safe(b.getNombreResponsable()) + " " + safe(b.getApellidosResponsable()));
+            row.createCell(6).setCellValue(safe(b.getEstado()));
+        }
     }
-
-    for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
-}
 
     private void crearHojaDonaciones(Workbook wb, CellStyle titleStyle, CellStyle subtitleStyle,
                                       CellStyle headerStyle, CellStyle moneyStyle) {
