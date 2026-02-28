@@ -47,16 +47,25 @@ public class InventarioRepositoryImpl implements InventarioRepositoryCustom {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public int registrar(InventarioItem item) {
         try {
-            Object resultado = em.createNativeQuery("CALL sp_crear_item_inventario(?1, ?2, ?3, ?4, ?5)")
+            List<?> rows = em.createNativeQuery("CALL sp_crear_item_inventario(?1, ?2, ?3, ?4, ?5)")
                     .setParameter(1, item.getNombre())
                     .setParameter(2, item.getCategoria())
                     .setParameter(3, item.getUnidadMedida())
                     .setParameter(4, item.getStockMinimo())
                     .setParameter(5, item.getObservacion())
-                    .getSingleResult();
-            return ((Number) resultado).intValue();
+                    .getResultList();
+            if (rows == null || rows.isEmpty()) {
+                return -1;
+            }
+            Object first = rows.get(0);
+            if (first instanceof Object[]) {
+                Object id = ((Object[]) first)[0];
+                return id instanceof Number ? ((Number) id).intValue() : Integer.parseInt(String.valueOf(id));
+            }
+            return first instanceof Number ? ((Number) first).intValue() : Integer.parseInt(String.valueOf(first));
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al registrar item inventario", e);
             return -1;

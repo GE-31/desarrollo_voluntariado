@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -28,7 +28,7 @@
             </button>
         </div>
 
-        <!-- ═══ Pestañas ═══ -->
+        <!-- â•â•â• PestaÃ±as â•â•â• -->
         <div class="tab-nav">
             <button class="tab-btn active" data-tab="tabCategorias" onclick="cambiarTab('tabCategorias')">
                 <i class="fa-solid fa-tags"></i> Categorias
@@ -38,7 +38,7 @@
             </button>
         </div>
 
-        <!-- ═══════════════════ TAB: CATEGORIAS ═══════════════════ -->
+        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TAB: CATEGORIAS â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
         <div id="tabCategorias" class="tab-content active">
             <div class="categorias-grid" id="categoriasGrid">
                 <!-- Se llena por JS -->
@@ -50,7 +50,7 @@
             </div>
         </div>
 
-        <!-- ═══════════════════ TAB: ITEMS BASE ═══════════════════ -->
+        <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• TAB: ITEMS BASE â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
         <div id="tabItems" class="tab-content" style="display:none;">
             <div class="inventario-kpis">
                 <div class="kpi-card warning">
@@ -117,7 +117,7 @@
     </div>
 </main>
 
-<!-- ═══ Modal Item ═══ -->
+<!-- â•â•â• Modal Item â•â•â• -->
 <div id="modalInventario" class="modal-overlay">
     <div class="modal-container">
         <div class="modal-card">
@@ -179,60 +179,8 @@
     </div>
 </div>
 
-<!-- ═══ Modal Movimiento ═══ -->
-<div id="modalMovimiento" class="modal-overlay">
-    <div class="modal-container">
-        <div class="modal-card">
-            <div class="modal-header-enhanced">
-                <div>
-                    <h2>Registrar Movimiento</h2>
-                    <p>Ajusta el stock con trazabilidad</p>
-                </div>
-                <button class="modal-close-btn" onclick="cerrarModalMovimiento()">&#10005;</button>
-            </div>
-            <form id="formMovimiento" onsubmit="guardarMovimiento(event)">
-                <input type="hidden" id="movIdItem" name="movIdItem">
-                <div class="form-grid">
-                    <div class="form-group full-width">
-                        <label>Item</label>
-                        <input type="text" id="movNombreItem" class="form-input" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Stock actual</label>
-                        <input type="text" id="movStockActual" class="form-input" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Tipo de movimiento *</label>
-                        <select id="movTipo" class="form-input" required>
-                            <option value="">Seleccione</option>
-                            <option value="ENTRADA">Entrada</option>
-                            <option value="SALIDA">Salida</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Cantidad *</label>
-                        <input type="number" id="movCantidad" class="form-input" min="0.01" step="0.01" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Motivo *</label>
-                        <input type="text" id="movMotivo" class="form-input" maxlength="30"
-                               placeholder="COMPRA, CONSUMO, MERMA..." required>
-                    </div>
-                    <div class="form-group full-width">
-                        <label>Observacion</label>
-                        <textarea id="movObservacion" class="form-textarea" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="cerrarModalMovimiento()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Registrar movimiento</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
-<!-- ═══ Modal Categoria ═══ -->
+<!-- â•â•â• Modal Categoria â•â•â• -->
 <div id="modalCategoria" class="modal-overlay">
     <div class="modal-container modal-sm">
         <div class="modal-card">

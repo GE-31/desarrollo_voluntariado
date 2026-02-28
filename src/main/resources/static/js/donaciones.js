@@ -31,22 +31,37 @@ const SUBTIPOS_DINERO = [
     'Cheque',
     'Otro'
 ];
-const SUBTIPOS_ESPECIE = [
-    'Ropa',
-    'Alimentos',
-    'Medicinas',
-    'Material educativo',
-    'Utiles de limpieza',
-    'Electrodomesticos',
-    'Muebles',
-    'Tecnologia',
-    'Juguetes',
-    'Otro'
-];
+let SUBTIPOS_ESPECIE = [];
+let subtiposEspecieCargados = false;
+
+async function cargarSubtiposEspecieDesdeCategorias() {
+    if (subtiposEspecieCargados) return;
+    try {
+        const resp = await fetch("inventario?accion=listar_categorias");
+        const cats = await resp.json();
+        SUBTIPOS_ESPECIE = Array.from(
+            new Set(
+                (cats || [])
+                    .map(c => (c && c.nombre ? String(c.nombre).trim() : ""))
+                    .filter(Boolean)
+            )
+        ).sort((a, b) => a.localeCompare(b, 'es'));
+    } catch (e) {
+        console.error("Error cargando categorias para subtipo de donacion:", e);
+        SUBTIPOS_ESPECIE = [];
+    } finally {
+        subtiposEspecieCargados = true;
+    }
+}
 
 function actualizarSubtipos(valorSeleccionado) {
     if (!subtipoDonacionSelect) return;
     const tipo = tipoDonacionSelect ? tipoDonacionSelect.value : '';
+    if (tipo === '2' && !subtiposEspecieCargados) {
+        subtipoDonacionSelect.innerHTML = '<option value="">Cargando categorias...</option>';
+        cargarSubtiposEspecieDesdeCategorias().then(() => actualizarSubtipos(valorSeleccionado));
+        return;
+    }
     let opciones = [];
     if (tipo === '1') opciones = SUBTIPOS_DINERO;
     else if (tipo === '2') opciones = SUBTIPOS_ESPECIE;
@@ -445,7 +460,7 @@ function abrirModal() {
     if (donanteSeleccionadoInfo) donanteSeleccionadoInfo.style.display = 'none';
     if (subtipoDonacionSelect) subtipoDonacionSelect.innerHTML = '<option value="">Seleccione primero el tipo</option>';
     desbloquearCamposEdicion();
-    const cargas = Promise.all([cargarActividades(), cargarItemsInventario()]);
+    const cargas = Promise.all([cargarActividades(), cargarItemsInventario(), cargarSubtiposEspecieDesdeCategorias()]);
     actualizarCamposInventario();
     return cargas;
 }
@@ -917,6 +932,7 @@ if (donacionAnonimaCheck) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    cargarSubtiposEspecieDesdeCategorias();
     actualizarCamposInventario();
     actualizarDonante();
     configurarEventosPaginacionDonaciones();
@@ -1004,7 +1020,8 @@ async function guardarItemRapido(event) {
             body: params.toString()
         });
         const result = await resp.json();
-        if (result.ok) {
+        const ok = result && (result.ok === true || result.success === true);
+        if (ok) {
             cerrarModalNuevoItemRapido();
             // Recargar items y seleccionar el nuevo
             await cargarItemsInventario();

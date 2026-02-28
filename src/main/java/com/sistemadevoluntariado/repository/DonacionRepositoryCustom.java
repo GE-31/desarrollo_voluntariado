@@ -14,6 +14,8 @@ public interface DonacionRepositoryCustom {
 
     boolean actualizar(Donacion d);
 
+    boolean actualizarPendienteEspecie(Donacion d);
+
     boolean actualizarDetalleEspecie(int idDonacion, double cantidad, String observacion);
 
     boolean anular(int id, int idUsuario, String motivo);

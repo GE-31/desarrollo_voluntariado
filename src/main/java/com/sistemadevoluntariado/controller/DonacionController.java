@@ -35,7 +35,7 @@ public class DonacionController {
     @Autowired
     private InventarioService inventarioService;
 
-    /* ───── Vista principal ───── */
+    /* â”€â”€â”€â”€â”€ Vista principal â”€â”€â”€â”€â”€ */
     @GetMapping
     public String vista(Model model, HttpSession session) {
         Usuario user = (Usuario) session.getAttribute("usuarioLogeado");
@@ -54,14 +54,14 @@ public class DonacionController {
         return "views/donaciones/donaciones";
     }
 
-    /* ───── REST GET: actividades activas ───── */
+    /* â”€â”€â”€â”€â”€ REST GET: actividades activas â”€â”€â”€â”€â”€ */
     @GetMapping(params = "accion=actividades")
     @ResponseBody
     public List<Actividad> listarActividades() {
         return actividadService.obtenerActividadesActivas();
     }
 
-    /* ───── REST GET: obtener donación por ID ───── */
+    /* â”€â”€â”€â”€â”€ REST GET: obtener donaciÃ³n por ID â”€â”€â”€â”€â”€ */
     @GetMapping(params = "accion=obtener")
     @ResponseBody
     public Object obtener(@RequestParam int id) {
@@ -71,14 +71,14 @@ public class DonacionController {
         return d;
     }
 
-    /* ───── REST GET: buscar donantes registrados ───── */
+    /* â”€â”€â”€â”€â”€ REST GET: buscar donantes registrados â”€â”€â”€â”€â”€ */
     @GetMapping(params = "accion=buscarDonante")
     @ResponseBody
     public List<Map<String, Object>> buscarDonante(@RequestParam String q) {
         return donacionService.buscarDonantes(q);
     }
 
-    /* ───── POST: crear donación (sin parámetro accion) ───── */
+    /* â”€â”€â”€â”€â”€ POST: crear donaciÃ³n (sin parÃ¡metro accion) â”€â”€â”€â”€â”€ */
     @PostMapping
     public String crear(HttpSession session,
             @RequestParam double cantidad,
@@ -95,7 +95,7 @@ public class DonacionController {
             @RequestParam(required = false) String dniDonante,
             @RequestParam(required = false) Integer idItem,
             @RequestParam(required = false) String accion) {
-        // Si viene con un accion inesperado (ni vacío ni "registrar"), redirigir
+        // Si viene con un accion inesperado (ni vacÃ­o ni "registrar"), redirigir
         if (accion != null && !accion.isEmpty() && !"registrar".equalsIgnoreCase(accion)) {
             return "redirect:/donaciones";
         }
@@ -134,7 +134,7 @@ public class DonacionController {
                     }
                     if (isBlank(d.getCorreoDonante()) && isBlank(d.getTelefonoDonante())) {
                         session.setAttribute("donacionError",
-                                "Para persona: ingresa al menos correo o teléfono del donante.");
+                                "Para persona: ingresa al menos correo o telÃ©fono del donante.");
                         return "redirect:/donaciones";
                     }
                 } else if ("EMPRESA".equals(tipoVal) || "GRUPO".equals(tipoVal)) {
@@ -144,7 +144,7 @@ public class DonacionController {
                     }
                     if (isBlank(d.getNombreDonante())) {
                         session.setAttribute("donacionError",
-                                "Debe ingresar la razón social del donante (empresa/grupo).");
+                                "Debe ingresar la razÃ³n social del donante (empresa/grupo).");
                         return "redirect:/donaciones";
                     }
                 }
@@ -153,12 +153,12 @@ public class DonacionController {
             if (tipoDonacion == 2) {
                 if (idItem == null || idItem <= 0) {
                     session.setAttribute("donacionError",
-                            "Para donaciones en especie debes seleccionar un ítem existente.");
+                            "Para donaciones en especie debes seleccionar un Ã­tem existente.");
                     return "redirect:/donaciones";
                 }
                 InventarioItem itm = inventarioService.obtenerPorId(idItem);
                 if (itm == null || !"ACTIVO".equalsIgnoreCase(itm.getEstado())) {
-                    session.setAttribute("donacionError", "El ítem seleccionado no existe o no está activo.");
+                    session.setAttribute("donacionError", "El Ã­tem seleccionado no existe o no estÃ¡ activo.");
                     return "redirect:/donaciones";
                 }
                 d.setIdItem(idItem);
@@ -166,25 +166,25 @@ public class DonacionController {
 
             boolean guardado = donacionService.guardar(d);
             if (!guardado) {
-                session.setAttribute("donacionError", "Error al registrar la donación. Intente nuevamente.");
+                session.setAttribute("donacionError", "Error al registrar la donaciÃ³n. Intente nuevamente.");
             }
         } catch (Exception e) {
-            // El SP hace COMMIT interno, así que la donación puede estar guardada
-            // aunque la transacción de Hibernate falle (ej: integración con Tesorería)
+            // El SP hace COMMIT interno, asÃ­ que la donaciÃ³n puede estar guardada
+            // aunque la transacciÃ³n de Hibernate falle (ej: integraciÃ³n con TesorerÃ­a)
             if (d.getIdDonacion() > 0) {
                 java.util.logging.Logger.getLogger(getClass().getName()).log(java.util.logging.Level.WARNING,
-                        "Donación #" + d.getIdDonacion() + " guardada OK, pero hubo error en integración post-registro",
+                        "DonaciÃ³n #" + d.getIdDonacion() + " guardada OK, pero hubo error en integraciÃ³n post-registro",
                         e);
             } else {
                 java.util.logging.Logger.getLogger(getClass().getName()).log(java.util.logging.Level.SEVERE,
-                        "Error inesperado al registrar donación", e);
-                session.setAttribute("donacionError", "Error inesperado al registrar la donación. Intente nuevamente.");
+                        "Error inesperado al registrar donaciÃ³n", e);
+                session.setAttribute("donacionError", "Error inesperado al registrar la donaciÃ³n. Intente nuevamente.");
             }
         }
         return "redirect:/donaciones";
     }
 
-    /* ───── POST: anular donación ───── */
+    /* â”€â”€â”€â”€â”€ POST: anular donaciÃ³n â”€â”€â”€â”€â”€ */
     @PostMapping(params = "accion=anular")
     @ResponseBody
     public Map<String, Object> anular(@RequestParam int idDonacion,
@@ -197,7 +197,7 @@ public class DonacionController {
         return Map.of("ok", ok, "message", ok ? "Donacion anulada" : "No se pudo anular la donacion");
     }
 
-    /* ───── POST: editar donación ───── */
+    /* â”€â”€â”€â”€â”€ POST: editar donaciÃ³n â”€â”€â”€â”€â”€ */
     @PostMapping(params = "accion=editar")
     public String editar(HttpSession session,
             @RequestParam int idDonacion,
@@ -267,16 +267,19 @@ public class DonacionController {
         d.setMotivoAnulacion(trim(motivoEdicion));
 
         try {
-            donacionService.actualizarConTesoreria(d, actual);
+            boolean ok = donacionService.actualizarConTesoreria(d, actual);
+            if (!ok) {
+                session.setAttribute("donacionError", "No se pudo editar la donacion. Verifica el estado y los datos.");
+            }
         } catch (Exception e) {
             java.util.logging.Logger.getLogger(getClass().getName()).log(java.util.logging.Level.SEVERE,
-                    "Error inesperado al editar donación", e);
-            session.setAttribute("donacionError", "Error inesperado al editar la donación. Intente nuevamente.");
+                    "Error inesperado al editar donacion", e);
+            session.setAttribute("donacionError", "Error inesperado al editar la donacion. Intente nuevamente.");
         }
         return "redirect:/donaciones";
     }
 
-    /* ───── POST: cambiar estado ───── */
+    /* â”€â”€â”€â”€â”€ POST: cambiar estado â”€â”€â”€â”€â”€ */
     @PostMapping(params = "accion=cambiar_estado")
     @ResponseBody
     public Map<String, Object> cambiarEstado(@RequestParam int idDonacion,
@@ -286,28 +289,28 @@ public class DonacionController {
         if (user == null)
             return Map.of("ok", false, "message", "No autorizado");
         try {
-            // 1. Obtener datos ANTES del cambio (transacción propia)
+            // 1. Obtener datos ANTES del cambio (transacciÃ³n propia)
             Donacion antes = donacionService.obtenerPorId(idDonacion);
 
-            // 2. Cambiar estado en la BD (transacción propia, se commitea independientemente)
+            // 2. Cambiar estado en la BD (transacciÃ³n propia, se commitea independientemente)
             boolean ok = donacionService.cambiarEstado(idDonacion, estado);
 
-            // 3. Integración Tesorería/Inventario (transacción separada)
-            //    Si falla, el cambio de estado ya está comiteado.
+            // 3. IntegraciÃ³n TesorerÃ­a/Inventario (transacciÃ³n separada)
+            //    Si falla, el cambio de estado ya estÃ¡ comiteado.
             if (ok) {
                 try {
                     donacionService.ejecutarIntegracionPostCambio(antes, idDonacion, estado, user.getIdUsuario());
                 } catch (Exception intEx) {
                     java.util.logging.Logger.getLogger(getClass().getName()).log(java.util.logging.Level.WARNING,
-                            "Integración falló pero el estado de la donación #" + idDonacion + " ya fue actualizado",
+                            "IntegraciÃ³n fallÃ³ pero el estado de la donaciÃ³n #" + idDonacion + " ya fue actualizado",
                             intEx);
                 }
             }
             return Map.of("ok", ok, "message", ok ? "Estado actualizado" : "No se pudo actualizar el estado");
         } catch (Exception e) {
             java.util.logging.Logger.getLogger(getClass().getName()).log(java.util.logging.Level.WARNING,
-                    "Excepción al cambiar estado de donación #" + idDonacion, e);
-            // Verificar si el SP actualizó el estado a pesar de la excepción
+                    "ExcepciÃ³n al cambiar estado de donaciÃ³n #" + idDonacion, e);
+            // Verificar si el SP actualizÃ³ el estado a pesar de la excepciÃ³n
             try {
                 Donacion actual = donacionService.obtenerPorId(idDonacion);
                 if (actual != null && estado.equalsIgnoreCase(actual.getEstado())) {
@@ -327,3 +330,4 @@ public class DonacionController {
         return value == null || value.trim().isEmpty();
     }
 }
+

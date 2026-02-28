@@ -22,12 +22,12 @@ public class InventarioService {
 
     // ── Categorías ──
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public List<CategoriaInventario> listarCategorias() {
         return categoriaRepository.findAllByOrderByIdCategoriaAsc();
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public boolean registrarCategoria(CategoriaInventario cat) {
         try {
             categoriaRepository.save(cat);
@@ -37,7 +37,7 @@ public class InventarioService {
         }
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public boolean actualizarCategoria(CategoriaInventario cat) {
         try {
             categoriaRepository.save(cat);
@@ -47,7 +47,7 @@ public class InventarioService {
         }
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public boolean eliminarCategoria(int idCategoria) {
         try {
             categoriaRepository.deleteById(idCategoria);
@@ -59,22 +59,22 @@ public class InventarioService {
 
     // ── Items de inventario ──
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public List<InventarioItem> listar() {
         return inventarioRepository.listar();
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public InventarioItem obtenerPorId(int id) {
         return inventarioRepository.obtenerPorId(id);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public List<InventarioItem> filtrar(String q, String categoria, String estado, boolean stockBajo) {
         return inventarioRepository.filtrar(q, categoria, estado, stockBajo);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public int contarStockBajo() {
         return inventarioRepository.contarStockBajo();
     }
@@ -82,22 +82,22 @@ public class InventarioService {
     /**
      * Registrar nuevo item. Retorna el ID generado o -1 si falla.
      */
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public int registrar(InventarioItem item) {
         return inventarioRepository.registrar(item);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public boolean actualizar(InventarioItem item) {
         return inventarioRepository.actualizar(item);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public boolean cambiarEstado(int idItem, String estado) {
         return inventarioRepository.cambiarEstadoItem(idItem, estado);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public boolean registrarMovimiento(int idItem, String tipo, String motivo,
                                         double cantidad, String observacion, int idUsuario) {
         return inventarioRepository.registrarMovimiento(idItem, tipo, motivo, cantidad, observacion, idUsuario);

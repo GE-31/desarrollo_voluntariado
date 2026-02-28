@@ -5,7 +5,6 @@
 
 const modalInventario = document.getElementById("modalInventario");
 const formInventario  = document.getElementById("formInventario");
-const modalMovimiento = document.getElementById("modalMovimiento");
 const modalCategoria  = document.getElementById("modalCategoria");
 const formCategoria   = document.getElementById("formCategoria");
 
@@ -345,56 +344,6 @@ async function cambiarEstado(id, nuevoEstado) {
     }
 }
 
-/* ─── Movimiento ─────────────────────────────────── */
-function abrirModalMovimiento(idItem) {
-    fetch("inventario?accion=obtener&id=" + idItem)
-        .then(r => r.json())
-        .then(item => {
-            document.getElementById("movIdItem").value = item.idItem;
-            document.getElementById("movNombreItem").value = item.nombre;
-            document.getElementById("movStockActual").value = item.stockActual;
-            document.getElementById("movTipo").value = "";
-            document.getElementById("movCantidad").value = "";
-            document.getElementById("movMotivo").value = "";
-            document.getElementById("movObservacion").value = "";
-            modalMovimiento.style.display = "flex";
-        })
-        .catch(e => { console.error(e); Notify.error("Error al cargar ítem"); });
-}
-
-function cerrarModalMovimiento() {
-    modalMovimiento.style.display = "none";
-}
-
-async function guardarMovimiento(event) {
-    event.preventDefault();
-    const params = new URLSearchParams();
-    params.append("accion", "registrar_movimiento");
-    params.append("idItem", document.getElementById("movIdItem").value);
-    params.append("tipo", document.getElementById("movTipo").value);
-    params.append("cantidad", document.getElementById("movCantidad").value);
-    params.append("motivo", document.getElementById("movMotivo").value);
-    params.append("observacion", document.getElementById("movObservacion").value);
-    try {
-        const resp = await fetch("inventario", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: params.toString()
-        });
-        const result = await resp.json();
-        if (result.success) {
-            cerrarModalMovimiento();
-            await filtrarInventario();
-            await cargarStockBajo();
-        } else {
-            Notify.error(result.message || "No se pudo registrar el movimiento");
-        }
-    } catch (e) {
-        console.error("Error registrando movimiento:", e);
-        Notify.error("Error al registrar movimiento");
-    }
-}
-
 /* ─── Filtro / paginacion items ──────────────────── */
 async function filtrarInventario() {
     const q         = (document.getElementById("filtroQ")?.value || "").toLowerCase();
@@ -406,8 +355,12 @@ async function filtrarInventario() {
         const items = await resp.json();
         inventarioFiltradoActual = items.filter(item => {
             const matchQ    = !q || item.nombre.toLowerCase().includes(q) || (item.observacion||"").toLowerCase().includes(q);
-            const matchCat  = !categoria || item.categoria === categoria;
-            const matchEst  = !estado || item.estado === estado;
+            const itemCategoria = String(item.categoria || "").trim().toUpperCase();
+            const filtroCategoria = String(categoria || "").trim().toUpperCase();
+            const itemEstado = String(item.estado || "").trim().toUpperCase();
+            const filtroEstado = String(estado || "").trim().toUpperCase();
+            const matchCat  = !filtroCategoria || itemCategoria === filtroCategoria;
+            const matchEst  = !filtroEstado || itemEstado === filtroEstado;
             const matchStock= !soloStock || item.stockActual <= item.stockMinimo;
             return matchQ && matchCat && matchEst && matchStock;
         });
@@ -442,7 +395,6 @@ function renderPaginaInventario() {
                 <td><span class="tag ${estadoTag}">${item.estado}</span></td>
                 <td>${item.actualizadoEn || item.creadoEn || ""}</td>
                 <td class="acciones-cell">
-                    <button class="btn-icon edit" onclick="abrirModalMovimiento(${item.idItem})" title="Registrar movimiento"><i class="fa-solid fa-right-left"></i></button>
                     <button class="btn-icon edit" onclick="editarItem(${item.idItem})" title="Editar">&#9998;</button>
                     ${btnEstado}
                 </td>
