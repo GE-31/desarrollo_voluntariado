@@ -70,8 +70,8 @@
                     <label for="filtroEstado">Estado</label>
                     <select id="filtroEstado" onchange="filtrarSalidas()">
                         <option value="">Todos</option>
-                        <option value="PENDIENTE">Pendiente</option>
                         <option value="CONFIRMADO">Confirmado</option>
+                        <option value="ANULADO">Anulado</option>
                     </select>
                 </div>
             </div>
@@ -95,7 +95,11 @@
                 <tbody id="tbodySalidas">
                     <th:block th:if="${salidas != null and !salidas.empty}">
                     <tr th:each="s : ${salidas}" class="salida-row"
-                        th:data-estado="${s.estado != null ? s.estado.toUpperCase() : 'PENDIENTE'}">
+                        th:with="estadoRaw=${s.estado},
+                                 estadoUpper=${estadoRaw == null ? '' : estadoRaw.trim().toUpperCase()},
+                                 estadoNorm=${estadoUpper == '' ? 'PENDIENTE' : (estadoUpper == 'ACTIVO' ? 'CONFIRMADO' : estadoUpper)},
+                                 badgeClass=${estadoNorm == 'CONFIRMADO' ? 'success' : (estadoNorm == 'ANULADO' ? 'error' : 'warning')}"
+                        th:data-estado="${estadoNorm}">
                         <!-- Monto -->
                         <td>
                             <strong th:text="'S/ ' + ${s.cantidad}"></strong>
@@ -124,17 +128,15 @@
                         <!-- Fecha -->
                         <td th:text="${s.registradoEn}"></td>
                         <!-- Estado -->
-                        <td th:with="estadoRaw=${s.estado},
-                                     estadoDisplay=${estadoRaw == null or estadoRaw.trim() == '' ? 'PENDIENTE' : estadoRaw.toUpperCase()},
-                                     badgeClass=${estadoDisplay == 'CONFIRMADO' ? 'success' : (estadoDisplay == 'ANULADO' ? 'error' : 'warning')}">
-                            <span class="badge" th:classappend="${badgeClass}" th:text="${estadoDisplay}">PENDIENTE</span>
+                        <td>
+                            <span class="badge" th:classappend="${badgeClass}" th:text="${estadoNorm}">PENDIENTE</span>
                         </td>
                         <!-- Acciones -->
                         <td class="acciones-cell">
                             <button class="btn-icon edit" th:onclick="'editarSalida(' + ${s.idSalida} + ')'" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <th:block th:if="${s.estado == null or s.estado.toUpperCase() == 'PENDIENTE'}">
+                            <th:block th:if="${estadoNorm == 'PENDIENTE'}">
                                 <button class="btn-icon enable" th:onclick="'cambiarEstadoSalida(' + ${s.idSalida} + ', \'CONFIRMADO\')'" title="Confirmar salida">
                                     <i class="fas fa-check"></i>
                                 </button>
@@ -142,7 +144,7 @@
                                     <i class="fas fa-ban"></i>
                                 </button>
                             </th:block>
-                            <th:block th:if="${s.estado != null and s.estado.toUpperCase() == 'CONFIRMADO'}">
+                            <th:block th:if="${estadoNorm == 'CONFIRMADO'}">
                                 <button class="btn-icon cancel" th:onclick="'anularSalida(' + ${s.idSalida} + ')'" title="Anular salida">
                                     <i class="fas fa-ban"></i>
                                 </button>
