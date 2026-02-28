@@ -1,4 +1,4 @@
-package com.sistemadevoluntariado.service;
+﻿package com.sistemadevoluntariado.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -90,18 +90,27 @@ public class DonacionService {
     public boolean guardar(Donacion d) {
         try {
             boolean ok = donacionRepository.guardar(d);
-            // Si es donación monetaria y se guardó bien, registrar ingreso en Tesorería
+            // Si es donaciÃ³n monetaria y se guardÃ³ bien, registrar ingreso en TesorerÃ­a
             if (ok && d.getIdTipoDonacion() == 1 && d.getIdDonacion() > 0) {
                 try {
                     registrarIngresoTesoreria(d.getIdDonacion(), d, d.getIdUsuarioRegistro());
                 } catch (Exception te) {
                     logger.log(Level.WARNING,
-                            "Error al registrar ingreso en tesorería para donación #" + d.getIdDonacion(), te);
+                            "Error al registrar ingreso en tesorerÃ­a para donaciÃ³n #" + d.getIdDonacion(), te);
+                }
+            }
+            // Fallback: algunos SP no realizan integraciÃ³n de inventario aunque quede confirmada.
+            if (ok && d.getIdTipoDonacion() == 2 && d.getIdDonacion() > 0) {
+                try {
+                    registrarEntradaInventarioSiConfirmada(d.getIdDonacion(), d.getIdUsuarioRegistro());
+                } catch (Exception ie) {
+                    logger.log(Level.WARNING,
+                            "Error en fallback de inventario para donaciÃ³n en especie #" + d.getIdDonacion(), ie);
                 }
             }
             return ok;
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error al guardar donación en servicio", e);
+            logger.log(Level.SEVERE, "Error al guardar donaciÃ³n en servicio", e);
             return false;
         }
     }
@@ -131,37 +140,37 @@ public class DonacionService {
     }
 
     /**
-     * Ejecutar la integración Tesorería/Inventario DESPUÉS de cambiar el estado.
-     * Se ejecuta en transacción SEPARADA para que un fallo aquí NO revierta
+     * Ejecutar la integraciÃ³n TesorerÃ­a/Inventario DESPUÃ‰S de cambiar el estado.
+     * Se ejecuta en transacciÃ³n SEPARADA para que un fallo aquÃ­ NO revierta
      * el cambio de estado ya comiteado.
      */
     @Transactional(noRollbackFor = Exception.class)
     public void ejecutarIntegracionPostCambio(Donacion antes, int idDonacion, String estado, int idUsuario) {
         if (antes == null) return;
         try {
-            // Si pasa a CONFIRMADO y es monetaria → registrar ingreso en Tesorería
+            // Si pasa a CONFIRMADO y es monetaria â†’ registrar ingreso en TesorerÃ­a
             if ("CONFIRMADO".equalsIgnoreCase(estado) && antes.getIdTipoDonacion() == 1) {
                 registrarIngresoTesoreria(idDonacion, antes, idUsuario);
             }
 
-            // Si pasa a CONFIRMADO y es en especie → registrar entrada en inventario
+            // Si pasa a CONFIRMADO y es en especie â†’ registrar entrada en inventario
             if ("CONFIRMADO".equalsIgnoreCase(estado) && antes.getIdTipoDonacion() == 2
                     && antes.getIdItem() != null && antes.getIdItem() > 0) {
                 double cantidad = antes.getCantidadItem() != null ? antes.getCantidadItem() : antes.getCantidad();
                 inventarioRepository.registrarMovimiento(
                         antes.getIdItem(), "ENTRADA", "DONACION", cantidad,
-                        "Donación en especie #" + idDonacion
+                        "DonaciÃ³n en especie #" + idDonacion
                                 + (antes.getDescripcion() != null ? " - " + antes.getDescripcion() : ""),
                         idUsuario);
             }
 
-            // Si pasa a ANULADO/RECHAZADO → eliminar movimiento Tesorería
+            // Si pasa a ANULADO/RECHAZADO â†’ eliminar movimiento TesorerÃ­a
             if (("ANULADO".equalsIgnoreCase(estado) || "RECHAZADO".equalsIgnoreCase(estado))
                     && antes.getIdTipoDonacion() == 1) {
                 eliminarMovimientoTesoreria(idDonacion);
             }
 
-            // Si pasa a ANULADO/RECHAZADO en especie y estaba CONFIRMADO → registrar salida
+            // Si pasa a ANULADO/RECHAZADO en especie y estaba CONFIRMADO â†’ registrar salida
             if (("ANULADO".equalsIgnoreCase(estado) || "RECHAZADO".equalsIgnoreCase(estado))
                     && antes.getIdTipoDonacion() == 2
                     && antes.getIdItem() != null && antes.getIdItem() > 0
@@ -169,27 +178,26 @@ public class DonacionService {
                 double cantidad = antes.getCantidadItem() != null ? antes.getCantidadItem() : antes.getCantidad();
                 inventarioRepository.registrarMovimiento(
                         antes.getIdItem(), "SALIDA", "ANULACION", cantidad,
-                        "Reversión donación #" + idDonacion,
+                        "ReversiÃ³n donaciÃ³n #" + idDonacion,
                         idUsuario);
             }
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error en integración Tesorería/Inventario (estado ya fue actualizado)", e);
+            logger.log(Level.SEVERE, "Error en integraciÃ³n TesorerÃ­a/Inventario (estado ya fue actualizado)", e);
         }
     }
 
     /**
-     * Actualizar donación y sincronizar movimiento de Tesorería si aplica.
+     * Actualizar donaciÃ³n y sincronizar movimiento de TesorerÃ­a si aplica.
      */
     @Transactional(noRollbackFor = Exception.class)
     public boolean actualizarConTesoreria(Donacion d, Donacion actual) {
-        boolean ok = donacionRepository.actualizar(d);
         boolean especiePendiente = actual.getIdTipoDonacion() == 2 && "PENDIENTE".equalsIgnoreCase(actual.getEstado());
+        boolean ok = especiePendiente
+                ? donacionRepository.actualizarPendienteEspecie(d)
+                : donacionRepository.actualizar(d);
 
-        if (ok && especiePendiente && d.getCantidad() != null && d.getCantidad() > 0) {
-            ok = donacionRepository.actualizarDetalleEspecie(d.getIdDonacion(), d.getCantidad(), d.getDescripcion());
-        }
 
-        // Si fue donación monetaria, actualizar movimiento en Tesorería
+        // Si fue donaciÃ³n monetaria, actualizar movimiento en TesorerÃ­a
         if (ok && actual.getIdTipoDonacion() == 1) {
             actualizarMovimientoTesoreria(d, actual);
         }
@@ -197,7 +205,7 @@ public class DonacionService {
         return ok;
     }
 
-    // ── Métodos privados de integración ──
+    // â”€â”€ MÃ©todos privados de integraciÃ³n â”€â”€
 
     private void registrarIngresoTesoreria(int idDonacion, Donacion antes, int idUsuario) {
         // Evitar duplicados
@@ -208,10 +216,10 @@ public class DonacionService {
             }
         }
 
-        // Usar INSERT nativo para no contaminar la sesión de Hibernate.
+        // Usar INSERT nativo para no contaminar la sesiÃ³n de Hibernate.
         // JPA save() agrega al persistence context y si el flush falla, se marca
-        // rollback-only y se pierde la actualización del estado de la donación.
-        String desc = "Donación" + (antes.getDescripcion() != null && !antes.getDescripcion().isEmpty()
+        // rollback-only y se pierde la actualizaciÃ³n del estado de la donaciÃ³n.
+        String desc = "DonaciÃ³n" + (antes.getDescripcion() != null && !antes.getDescripcion().isEmpty()
                 ? ": " + antes.getDescripcion()
                 : "") + " (Donacion #" + idDonacion + ")";
         String comprobante = resolverComprobante(antes, idDonacion);
@@ -241,7 +249,7 @@ public class DonacionService {
                 }
             }
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Error al eliminar movimiento tesorería", e);
+            logger.log(Level.WARNING, "Error al eliminar movimiento tesorerÃ­a", e);
         }
     }
 
@@ -251,7 +259,7 @@ public class DonacionService {
             for (MovimientoFinanciero mv : listado) {
                 if (mv.getDescripcion() != null && mv.getDescripcion().contains("Donacion #" + d.getIdDonacion())) {
                     mv.setMonto(d.getCantidad() != null ? d.getCantidad() : mv.getMonto());
-                    mv.setDescripcion("Donación" + (d.getDescripcion() != null && !d.getDescripcion().isEmpty()
+                    mv.setDescripcion("DonaciÃ³n" + (d.getDescripcion() != null && !d.getDescripcion().isEmpty()
                             ? ": " + d.getDescripcion()
                             : "") + " (Donacion #" + d.getIdDonacion() + ")");
                     mv.setCategoria("Donaciones");
@@ -262,7 +270,7 @@ public class DonacionService {
                 }
             }
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Error al actualizar movimiento tesorería", e);
+            logger.log(Level.WARNING, "Error al actualizar movimiento tesorerÃ­a", e);
         }
     }
 
@@ -274,5 +282,36 @@ public class DonacionService {
             return (d.getRucDonante() != null && !d.getRucDonante().isEmpty()) ? d.getRucDonante() : null;
         }
         return null;
+    }
+
+    private void registrarEntradaInventarioSiConfirmada(int idDonacion, int idUsuario) {
+        Donacion actual = donacionRepository.obtenerPorId(idDonacion);
+        if (actual == null || actual.getIdItem() == null || actual.getIdItem() <= 0) {
+            return;
+        }
+
+        String estado = actual.getEstado() != null ? actual.getEstado().toUpperCase() : "";
+        if (!"CONFIRMADO".equals(estado) && !"ACTIVO".equals(estado)) {
+            return;
+        }
+
+        Number count = (Number) em.createNativeQuery(
+                "SELECT COUNT(*) FROM inventario_movimiento " +
+                        "WHERE id_referencia = ?1 AND tabla_referencia = 'donacion' AND tipo_movimiento = 'ENTRADA'")
+                .setParameter(1, idDonacion)
+                .getSingleResult();
+        if (count != null && count.intValue() > 0) {
+            return;
+        }
+
+        double cantidad = actual.getCantidadItem() != null ? actual.getCantidadItem() : actual.getCantidad();
+        inventarioRepository.registrarMovimiento(
+                actual.getIdItem(),
+                "ENTRADA",
+                "DONACION",
+                cantidad,
+                "DonaciÃ³n en especie #" + idDonacion
+                        + (actual.getDescripcion() != null ? " - " + actual.getDescripcion() : ""),
+                idUsuario);
     }
 }

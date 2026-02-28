@@ -1,4 +1,4 @@
-package com.sistemadevoluntariado.repository;
+﻿package com.sistemadevoluntariado.repository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,33 +67,70 @@ public class DonacionRepositoryImpl implements DonacionRepositoryCustom {
             String descripcion = d.getDescripcion() != null ? d.getDescripcion() : "";
             String subtipoDonacion = d.getSubtipoDonacion() != null ? d.getSubtipoDonacion() : "";
 
-            List<?> result = em.createNativeQuery(
-                    "CALL sp_registrar_donacion_inventario(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19)")
-                    .setParameter(1, d.getCantidad())
-                    .setParameter(2, descripcion)
-                    .setParameter(3, d.getIdTipoDonacion())
-                    .setParameter(4, subtipoDonacion)
-                    .setParameter(5, d.getIdActividad())
-                    .setParameter(6, d.getIdUsuarioRegistro())
-                    .setParameter(7, idItem)
-                    .setParameter(8, d.isCrearNuevoItem() ? 1 : 0)
-                    .setParameter(9, itemNombre)
-                    .setParameter(10, itemCategoria)
-                    .setParameter(11, itemUnidadMedida)
-                    .setParameter(12, stockMinimo)
-                    .setParameter(13, d.isDonacionAnonima() ? 1 : 0)
-                    .setParameter(14, tipoDonante)
-                    .setParameter(15, nombreDonante)
-                    .setParameter(16, correoDonante)
-                    .setParameter(17, telefonoDonante)
-                    .setParameter(18, dniDonante)
-                    .setParameter(19, rucDonante)
-                    .getResultList();
-            if (!result.isEmpty()) {
-                Number idGenerado = (Number) result.get(0);
-                d.setIdDonacion(idGenerado.intValue());
+            List<?> result;
+            try {
+                // Version del SP con subtipo_donacion (19 parametros)
+                result = em.createNativeQuery(
+                        "CALL sp_registrar_donacion_inventario(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18,?19)")
+                        .setParameter(1, d.getCantidad())
+                        .setParameter(2, descripcion)
+                        .setParameter(3, d.getIdTipoDonacion())
+                        .setParameter(4, subtipoDonacion)
+                        .setParameter(5, d.getIdActividad())
+                        .setParameter(6, d.getIdUsuarioRegistro())
+                        .setParameter(7, idItem)
+                        .setParameter(8, d.isCrearNuevoItem() ? 1 : 0)
+                        .setParameter(9, itemNombre)
+                        .setParameter(10, itemCategoria)
+                        .setParameter(11, itemUnidadMedida)
+                        .setParameter(12, stockMinimo)
+                        .setParameter(13, d.isDonacionAnonima() ? 1 : 0)
+                        .setParameter(14, tipoDonante)
+                        .setParameter(15, nombreDonante)
+                        .setParameter(16, correoDonante)
+                        .setParameter(17, telefonoDonante)
+                        .setParameter(18, dniDonante)
+                        .setParameter(19, rucDonante)
+                        .getResultList();
+            } catch (Exception exVersionNueva) {
+                logger.log(Level.WARNING,
+                        "SP sp_registrar_donacion_inventario (19 params) no disponible. Reintentando version 18 params.",
+                        exVersionNueva);
+                // Version antigua del SP sin subtipo_donacion (18 parametros)
+                result = em.createNativeQuery(
+                        "CALL sp_registrar_donacion_inventario(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)")
+                        .setParameter(1, d.getCantidad())
+                        .setParameter(2, descripcion)
+                        .setParameter(3, d.getIdTipoDonacion())
+                        .setParameter(4, d.getIdActividad())
+                        .setParameter(5, d.getIdUsuarioRegistro())
+                        .setParameter(6, idItem)
+                        .setParameter(7, d.isCrearNuevoItem() ? 1 : 0)
+                        .setParameter(8, itemNombre)
+                        .setParameter(9, itemCategoria)
+                        .setParameter(10, itemUnidadMedida)
+                        .setParameter(11, stockMinimo)
+                        .setParameter(12, d.isDonacionAnonima() ? 1 : 0)
+                        .setParameter(13, tipoDonante)
+                        .setParameter(14, nombreDonante)
+                        .setParameter(15, correoDonante)
+                        .setParameter(16, telefonoDonante)
+                        .setParameter(17, dniDonante)
+                        .setParameter(18, rucDonante)
+                        .getResultList();
             }
-            logger.info("✓ Donacion registrada con ID: " + d.getIdDonacion());
+            if (!result.isEmpty()) {
+                Object first = result.get(0);
+                if (first instanceof Object[]) {
+                    d.setIdDonacion(toInt(((Object[]) first)[0], 0));
+                } else {
+                    d.setIdDonacion(toInt(first, 0));
+                }
+            }
+            if (d.getIdDonacion() > 0 && d.getIdTipoDonacion() == 2 && idItem > 0) {
+                asegurarDetalleEspecie(d.getIdDonacion(), idItem, d.getCantidad(), descripcion);
+            }
+            logger.info("âœ“ Donacion registrada con ID: " + d.getIdDonacion());
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al guardar donacion", e);
@@ -105,24 +142,48 @@ public class DonacionRepositoryImpl implements DonacionRepositoryCustom {
     @SuppressWarnings("unchecked")
     public boolean actualizar(Donacion d) {
         try {
-            em.createNativeQuery(
-                    "CALL sp_actualizar_donacion_inventario(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)")
-                    .setParameter(1, d.getIdDonacion())
-                    .setParameter(2, d.getCantidad())
-                    .setParameter(3, d.getDescripcion())
-                    .setParameter(4, d.getSubtipoDonacion() != null ? d.getSubtipoDonacion() : "")
-                    .setParameter(5, d.getIdActividad())
-                    .setParameter(6, d.isDonacionAnonima() ? 1 : 0)
-                    .setParameter(7, d.getTipoDonante())
-                    .setParameter(8, d.getNombreDonante())
-                    .setParameter(9, d.getCorreoDonante())
-                    .setParameter(10, d.getTelefonoDonante())
-                    .setParameter(11, d.getDniDonante())
-                    .setParameter(12, d.getRucDonante())
-                    .setParameter(13, 0)
-                    .setParameter(14, (String) null)
-                    .getResultList();
-            logger.info("✓ Donacion actualizada ID: " + d.getIdDonacion());
+            try {
+                // Version nueva del SP (14 params, incluye subtipo_donacion)
+                em.createNativeQuery(
+                        "CALL sp_actualizar_donacion_inventario(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)")
+                        .setParameter(1, d.getIdDonacion())
+                        .setParameter(2, d.getCantidad())
+                        .setParameter(3, d.getDescripcion())
+                        .setParameter(4, d.getSubtipoDonacion() != null ? d.getSubtipoDonacion() : "")
+                        .setParameter(5, d.getIdActividad())
+                        .setParameter(6, d.isDonacionAnonima() ? 1 : 0)
+                        .setParameter(7, d.getTipoDonante())
+                        .setParameter(8, d.getNombreDonante())
+                        .setParameter(9, d.getCorreoDonante())
+                        .setParameter(10, d.getTelefonoDonante())
+                        .setParameter(11, d.getDniDonante())
+                        .setParameter(12, d.getRucDonante())
+                        .setParameter(13, 0)
+                        .setParameter(14, (String) null)
+                        .getResultList();
+            } catch (Exception exVersionNueva) {
+                logger.log(Level.WARNING,
+                        "SP sp_actualizar_donacion_inventario (14 params) no disponible. Reintentando version 13 params.",
+                        exVersionNueva);
+                // Version anterior del SP (13 params, sin subtipo_donacion)
+                em.createNativeQuery(
+                        "CALL sp_actualizar_donacion_inventario(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)")
+                        .setParameter(1, d.getIdDonacion())
+                        .setParameter(2, d.getCantidad())
+                        .setParameter(3, d.getDescripcion())
+                        .setParameter(4, d.getIdActividad())
+                        .setParameter(5, d.isDonacionAnonima() ? 1 : 0)
+                        .setParameter(6, d.getTipoDonante())
+                        .setParameter(7, d.getNombreDonante())
+                        .setParameter(8, d.getCorreoDonante())
+                        .setParameter(9, d.getTelefonoDonante())
+                        .setParameter(10, d.getDniDonante())
+                        .setParameter(11, d.getRucDonante())
+                        .setParameter(12, 0)
+                        .setParameter(13, (String) null)
+                        .getResultList();
+            }
+            logger.info("Donacion actualizada ID: " + d.getIdDonacion());
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al actualizar donacion", e);
@@ -131,14 +192,56 @@ public class DonacionRepositoryImpl implements DonacionRepositoryCustom {
     }
 
     @Override
+    public boolean actualizarPendienteEspecie(Donacion d) {
+        try {
+            int filas = em.createNativeQuery(
+                    "UPDATE donacion " +
+                    "SET cantidad = ?1, descripcion = ?2, subtipo_donacion = ?3, id_actividad = ?4, actualizado_en = NOW() " +
+                    "WHERE id_donacion = ?5 AND UPPER(COALESCE(estado, 'PENDIENTE')) = 'PENDIENTE'")
+                    .setParameter(1, d.getCantidad())
+                    .setParameter(2, d.getDescripcion())
+                    .setParameter(3, d.getSubtipoDonacion())
+                    .setParameter(4, d.getIdActividad() > 0 ? d.getIdActividad() : null)
+                    .setParameter(5, d.getIdDonacion())
+                    .executeUpdate();
+            if (filas <= 0) {
+                return false;
+            }
+            upsertDetalleEspecie(d.getIdDonacion(), d.getCantidad(), d.getDescripcion());
+            return true;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error al actualizar donacion pendiente en especie", e);
+            return false;
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
     public boolean actualizarDetalleEspecie(int idDonacion, double cantidad, String observacion) {
         try {
-            Object result = em.createNativeQuery("CALL sp_actualizar_detalle_especie(?1, ?2, ?3)")
+            List<?> rows = em.createNativeQuery("CALL sp_actualizar_detalle_especie(?1, ?2, ?3)")
                     .setParameter(1, idDonacion)
                     .setParameter(2, cantidad)
                     .setParameter(3, observacion)
-                    .getSingleResult();
-            return ((Number) result).intValue() > 0;
+                    .getResultList();
+            int filas = 0;
+            if (rows != null && !rows.isEmpty()) {
+                Object first = rows.get(0);
+                if (first instanceof Object[]) {
+                    filas = toInt(((Object[]) first)[0], 0);
+                } else {
+                    filas = toInt(first, 0);
+                }
+            }
+            if (filas > 0) {
+                return true;
+            }
+            Donacion actual = obtenerPorId(idDonacion);
+            if (actual != null && actual.getIdItem() != null && actual.getIdItem() > 0) {
+                asegurarDetalleEspecie(idDonacion, actual.getIdItem(), cantidad, observacion);
+                return true;
+            }
+            return false;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al actualizar detalle de donacion en especie", e);
             return false;
@@ -153,7 +256,7 @@ public class DonacionRepositoryImpl implements DonacionRepositoryCustom {
                     .setParameter(2, idUsuario)
                     .setParameter(3, motivo)
                     .executeUpdate();
-            logger.info("✓ Donacion anulada ID: " + id);
+            logger.info("âœ“ Donacion anulada ID: " + id);
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al anular donacion", e);
@@ -170,7 +273,7 @@ public class DonacionRepositoryImpl implements DonacionRepositoryCustom {
                     .setParameter(2, estado)
                     .getResultList();
             if (results.isEmpty()) {
-                logger.warning("SP sp_cambiar_estado_donacion no retornó resultado para id=" + id);
+                logger.warning("SP sp_cambiar_estado_donacion no retornÃ³ resultado para id=" + id);
                 return false;
             }
             Object row = results.get(0);
@@ -188,7 +291,7 @@ public class DonacionRepositoryImpl implements DonacionRepositoryCustom {
         }
     }
 
-    // ── HELPERS ─────────────────────────────────────────────
+    // â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private Donacion mapear(Object[] row) {
         Donacion d = new Donacion();
@@ -240,6 +343,50 @@ public class DonacionRepositoryImpl implements DonacionRepositoryCustom {
             return Double.parseDouble(value.toString().trim());
         } catch (NumberFormatException e) {
             return defaultValue;
+        }
+    }
+
+    private void asegurarDetalleEspecie(int idDonacion, int idItem, Double cantidad, String observacion) {
+        try {
+            Number count = (Number) em.createNativeQuery(
+                    "SELECT COUNT(*) FROM donacion_detalle WHERE id_donacion = ?1")
+                    .setParameter(1, idDonacion)
+                    .getSingleResult();
+            if (count != null && count.intValue() > 0) {
+                return;
+            }
+
+            double cant = cantidad != null ? cantidad : 0d;
+            em.createNativeQuery(
+                    "INSERT INTO donacion_detalle(id_donacion, id_item, cantidad, observacion, creado_en) " +
+                    "VALUES(?1, ?2, ?3, ?4, NOW())")
+                    .setParameter(1, idDonacion)
+                    .setParameter(2, idItem)
+                    .setParameter(3, cant)
+                    .setParameter(4, observacion)
+                    .executeUpdate();
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "No se pudo asegurar detalle para donacion en especie #" + idDonacion, e);
+        }
+    }
+
+    private void upsertDetalleEspecie(int idDonacion, Double cantidad, String observacion) {
+        try {
+            int updated = em.createNativeQuery(
+                    "UPDATE donacion_detalle SET cantidad = ?1, observacion = ?2 WHERE id_donacion = ?3")
+                    .setParameter(1, cantidad != null ? cantidad : 0d)
+                    .setParameter(2, observacion)
+                    .setParameter(3, idDonacion)
+                    .executeUpdate();
+            if (updated > 0) {
+                return;
+            }
+            Donacion actual = obtenerPorId(idDonacion);
+            if (actual != null && actual.getIdItem() != null && actual.getIdItem() > 0) {
+                asegurarDetalleEspecie(idDonacion, actual.getIdItem(), cantidad, observacion);
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "No se pudo hacer upsert de donacion_detalle para " + idDonacion, e);
         }
     }
 }
