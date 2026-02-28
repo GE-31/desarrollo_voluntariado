@@ -10,7 +10,7 @@ let salidas = [];
 let itemsDisponibles = [];
 let carrito = [];
 let paginaActual = 1;
-const PAGINA_TAMANO = 10;
+const PAGINA_TAMANO = 5;
 
 // ═══════════════════════════════════════════════════════════
 // INICIALIZACIÓN
@@ -83,6 +83,8 @@ function renderizarTabla() {
     const tbody = document.getElementById('tbodySalidasInv');
     const filtradas = obtenerSalidasFiltradas();
     const totalPaginas = Math.ceil(filtradas.length / PAGINA_TAMANO);
+    if (paginaActual > totalPaginas && totalPaginas > 0) paginaActual = totalPaginas;
+    if (paginaActual < 1) paginaActual = 1;
     const inicio = (paginaActual - 1) * PAGINA_TAMANO;
     const paginadas = filtradas.slice(inicio, inicio + PAGINA_TAMANO);
 
@@ -136,8 +138,12 @@ function renderizarTabla() {
         document.getElementById('textoPaginacionSI').textContent = `Página ${paginaActual} de ${totalPaginas}`;
         document.getElementById('btnPaginaAnteriorSI').disabled = paginaActual <= 1;
         document.getElementById('btnPaginaSiguienteSI').disabled = paginaActual >= totalPaginas;
-        document.getElementById('btnPaginaAnteriorSI').onclick = () => { paginaActual--; renderizarTabla(); };
-        document.getElementById('btnPaginaSiguienteSI').onclick = () => { paginaActual++; renderizarTabla(); };
+        document.getElementById('btnPaginaAnteriorSI').onclick = () => {
+            if (paginaActual > 1) { paginaActual--; renderizarTabla(); }
+        };
+        document.getElementById('btnPaginaSiguienteSI').onclick = () => {
+            if (paginaActual < totalPaginas) { paginaActual++; renderizarTabla(); }
+        };
     } else {
         pag.style.display = 'none';
     }

@@ -1,6 +1,8 @@
 package com.sistemadevoluntariado.repository;
 
 import java.util.ArrayList;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +74,7 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
                 Number idGenerado = (Number) result.get(0);
                 s.setIdSalida(idGenerado.intValue());
             }
-            logger.info("✓ Salida de donacion registrada con ID: " + s.getIdSalida());
+            logger.info("âœ“ Salida de donacion registrada con ID: " + s.getIdSalida());
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al guardar salida de donacion", e);
@@ -95,7 +97,7 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
                     .setParameter(5, idItem)
                     .setParameter(6, cantidadItem)
                     .executeUpdate();
-            logger.info("✓ Salida de donacion actualizada ID: " + s.getIdSalida());
+            logger.info("âœ“ Salida de donacion actualizada ID: " + s.getIdSalida());
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al actualizar salida de donacion", e);
@@ -111,7 +113,7 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
                     .setParameter(2, idUsuario)
                     .setParameter(3, motivo)
                     .executeUpdate();
-            logger.info("✓ Salida de donacion anulada ID: " + id);
+            logger.info("âœ“ Salida de donacion anulada ID: " + id);
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al anular salida de donacion", e);
@@ -144,11 +146,11 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
                 Map<String, Object> map = new HashMap<>();
                 map.put("idDonacion", row[0]);
                 map.put("cantidad", row[1]);
-                map.put("descripcion", row[2] != null ? row[2].toString() : "");
-                map.put("tipoDonacion", row[3] != null ? row[3].toString() : "");
-                map.put("actividadOrigen", row[4] != null ? row[4].toString() : "");
-                map.put("donante", row[5] != null ? row[5].toString() : "ANÓNIMO");
-                map.put("estado", row[6] != null ? row[6].toString() : "");
+                map.put("descripcion", limpiarTexto(row[2], ""));
+                map.put("tipoDonacion", limpiarTexto(row[3], ""));
+                map.put("actividadOrigen", limpiarTexto(row[4], ""));
+                map.put("donante", limpiarTexto(row[5], "ANONIMO"));
+                map.put("estado", limpiarTexto(row[6], ""));
                 map.put("idTipoDonacion", row[7]);
                 lista.add(map);
             }
@@ -159,31 +161,31 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
         }
     }
 
-    // ── HELPERS ─────────────────────────────────────────────
+    // â”€â”€ HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private SalidaDonacion mapear(Object[] row) {
         SalidaDonacion s = new SalidaDonacion();
         s.setIdSalida(toInt(row[0], 0));
         s.setIdDonacion(toInt(row[1], 0));
         s.setIdActividad(toInt(row[2], 0));
-        s.setTipoSalida(row[3] != null ? row[3].toString() : null);
+        s.setTipoSalida(limpiarTexto(row[3], null));
         s.setCantidad(toDouble(row[4], 0.0));
-        s.setDescripcion(row[5] != null ? row[5].toString() : null);
+        s.setDescripcion(limpiarTexto(row[5], null));
         s.setIdItem(row[6] != null ? toInt(row[6], null) : null);
         s.setCantidadItem(row[7] != null ? toDouble(row[7], null) : null);
         s.setIdUsuarioRegistro(toInt(row[8], 0));
-        s.setRegistradoEn(row[9] != null ? row[9].toString() : null);
-        s.setEstado(row[10] != null ? row[10].toString() : null);
+        s.setRegistradoEn(limpiarTexto(row[9], null));
+        s.setEstado(limpiarTexto(row[10], null));
         s.setDonacionCantidad(toDouble(row[11], 0.0));
-        s.setTipoDonacionNombre(row[12] != null ? row[12].toString() : null);
-        s.setActividadNombre(row[13] != null ? row[13].toString() : null);
-        s.setUsuarioRegistro(row[14] != null ? row[14].toString() : null);
-        s.setItemNombre(row[15] != null ? row[15].toString() : null);
-        s.setItemUnidadMedida(row[16] != null ? row[16].toString() : null);
-        s.setDonanteNombre(row[17] != null ? row[17].toString() : null);
-        s.setMotivoAnulacion(row[18] != null ? row[18].toString() : null);
-        s.setAnuladoEn(row[19] != null ? row[19].toString() : null);
-        s.setDonacionDescripcion(row[20] != null ? row[20].toString() : null);
+        s.setTipoDonacionNombre(limpiarTexto(row[12], null));
+        s.setActividadNombre(limpiarTexto(row[13], null));
+        s.setUsuarioRegistro(limpiarTexto(row[14], null));
+        s.setItemNombre(limpiarTexto(row[15], null));
+        s.setItemUnidadMedida(limpiarTexto(row[16], null));
+        s.setDonanteNombre(limpiarTexto(row[17], "ANONIMO"));
+        s.setMotivoAnulacion(limpiarTexto(row[18], null));
+        s.setAnuladoEn(limpiarTexto(row[19], null));
+        s.setDonacionDescripcion(limpiarTexto(row[20], null));
         return s;
     }
 
@@ -214,11 +216,11 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
                 map.put("id", toInt(row[0], 0));
                 map.put("cantidadOriginal", toDouble(row[1], 0.0));
                 map.put("saldoDisponible", toDouble(row[2], 0.0));
-                map.put("descripcion", row[3] != null ? row[3].toString() : "");
-                map.put("tipoDonacion", row[4] != null ? row[4].toString() : "DINERO");
+                map.put("descripcion", limpiarTexto(row[3], ""));
+                map.put("tipoDonacion", limpiarTexto(row[4], "DINERO"));
                 map.put("idTipoDonacion", toInt(row[5], 0));
-                map.put("actividadOrigen", row[6] != null ? row[6].toString() : "");
-                map.put("donante", row[7] != null ? row[7].toString() : "ANÓNIMO");
+                map.put("actividadOrigen", limpiarTexto(row[6], ""));
+                map.put("donante", limpiarTexto(row[7], "ANONIMO"));
                 lista.add(map);
             }
             return lista;
@@ -240,11 +242,63 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
             Map<String, Object> map = new HashMap<>();
             map.put("cantidadOriginal", toDouble(row[0], 0.0));
             map.put("saldoDisponible", toDouble(row[1], 0.0));
-            map.put("tipoDonacion", row[2] != null ? row[2].toString() : "DINERO");
+            map.put("tipoDonacion", limpiarTexto(row[2], "DINERO"));
             return map;
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error al obtener saldo de donación", e);
+            logger.log(Level.SEVERE, "Error al obtener saldo de donaciÃ³n", e);
             return Map.of("saldoDisponible", 0.0);
         }
     }
+
+    private String limpiarTexto(Object value, String fallback) {
+        String text = value != null ? value.toString() : fallback;
+        if (text == null) return null;
+
+        String normalized = normalizarMojibake(text.trim());
+        if (normalized.isEmpty() && fallback != null) return fallback;
+        if (esAnonimo(normalized)) return "ANONIMO";
+        return normalized;
+    }
+
+    private String normalizarMojibake(String text) {
+        if (text == null || text.isEmpty()) return "";
+        if (!contienePatronRoto(text)) return text;
+
+        String isoDecoded = new String(text.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
+        if (conteoPatronesRotos(isoDecoded) < conteoPatronesRotos(text)) {
+            return isoDecoded;
+        }
+
+        String cp1252Decoded = new String(text.getBytes(Charset.forName("Windows-1252")), StandardCharsets.UTF_8);
+        if (conteoPatronesRotos(cp1252Decoded) < conteoPatronesRotos(text)) {
+            return cp1252Decoded;
+        }
+
+        return text;
+    }
+
+    private boolean contienePatronRoto(String text) {
+        return text.indexOf('\u00C3') >= 0
+                || text.indexOf('\u00C2') >= 0
+                || text.indexOf('\u251C') >= 0
+                || text.indexOf('\uFFFD') >= 0;
+    }
+
+    private int conteoPatronesRotos(String text) {
+        int count = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\u00C3' || c == '\u00C2' || c == '\u251C' || c == '\uFFFD') {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean esAnonimo(String text) {
+        String upper = text.toUpperCase();
+        return upper.contains("ANONIMO")
+                || (upper.startsWith("AN") && upper.contains("NIMO"));
+    }
 }
+

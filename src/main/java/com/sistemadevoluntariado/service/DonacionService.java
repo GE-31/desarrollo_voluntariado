@@ -1,4 +1,4 @@
-﻿package com.sistemadevoluntariado.service;
+package com.sistemadevoluntariado.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
