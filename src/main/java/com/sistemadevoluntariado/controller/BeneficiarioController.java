@@ -2,6 +2,7 @@ package com.sistemadevoluntariado.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -24,6 +25,18 @@ public class BeneficiarioController {
 
     @Autowired
     private BeneficiarioService beneficiarioService;
+
+    private boolean esTextoValido(String texto) {
+        return texto != null && Pattern.matches("^[a-zA-ZáéíóúÁÉÍÓÚñÑ\\s]+$", texto);
+    }
+
+    private boolean esDniValido(String dni) {
+        return dni != null && dni.matches("^\\d{8}$");
+    }
+
+    private boolean esTelefonoValido(String telefono) {
+        return telefono != null && telefono.matches("^\\d{9}$");
+    }
 
     /* ───── Vista principal ───── */
     @GetMapping
@@ -49,23 +62,43 @@ public class BeneficiarioController {
 
     @PostMapping(params = "action=crear")
     @ResponseBody
-    public Map<String, Object> crear(@RequestParam String nombres,
-                                     @RequestParam String apellidos,
-                                     @RequestParam String dni,
-                                     @RequestParam(required = false) String telefono,
-                                     @RequestParam(required = false) String direccion,
-                                     @RequestParam(required = false) String distrito,
-                                     @RequestParam(required = false) String organizacion,
-                                     @RequestParam(required = false) String necesidadPrincipal,
-                                     @RequestParam(required = false) String observaciones,
-                                     HttpSession session) {
+    public Map<String, Object> crear(
+            @RequestParam(required = false) String organizacion,
+            @RequestParam(required = false) String direccion,
+            @RequestParam(required = false) String distrito,
+            @RequestParam(required = false) String necesidadPrincipal,
+            @RequestParam(required = false) String observaciones,
+            @RequestParam String nombreResponsable,
+            @RequestParam String apellidosResponsable,
+            @RequestParam String dni,
+            @RequestParam(required = false) String telefono,
+            HttpSession session) {
         try {
+            if (!esTextoValido(distrito) || !esTextoValido(necesidadPrincipal) || !esTextoValido(nombreResponsable) || !esTextoValido(apellidosResponsable)) {
+                return Map.of("success", false, "message", "Los campos de texto no deben contener números ni caracteres especiales.");
+            }
+
+            if (!esDniValido(dni)) {
+                return Map.of("success", false, "message", "El DNI debe contener exactamente 8 dígitos.");
+            }
+
+            if (telefono != null && !esTelefonoValido(telefono)) {
+                return Map.of("success", false, "message", "El teléfono debe contener exactamente 9 dígitos.");
+            }
+
             Usuario usuario = (Usuario) session.getAttribute("usuarioLogeado");
             if (usuario == null) return Map.of("success", false, "message", "No autorizado");
 
-            Beneficiario b = new Beneficiario(nombres, apellidos, dni, telefono, direccion,
-                    distrito, organizacion, necesidadPrincipal);
+            Beneficiario b = new Beneficiario();
+            b.setOrganizacion(organizacion);
+            b.setDireccion(direccion);
+            b.setDistrito(distrito);
+            b.setNecesidadPrincipal(necesidadPrincipal);
             b.setObservaciones(observaciones);
+            b.setNombreResponsable(nombreResponsable);
+            b.setApellidosResponsable(apellidosResponsable);
+            b.setDni(dni);
+            b.setTelefono(telefono);
             b.setIdUsuario(usuario.getIdUsuario());
 
             int newId = beneficiarioService.crearBeneficiario(b);
@@ -79,28 +112,41 @@ public class BeneficiarioController {
 
     @PostMapping(params = "action=editar")
     @ResponseBody
-    public Map<String, Object> editar(@RequestParam int id,
-                                      @RequestParam String nombres,
-                                      @RequestParam String apellidos,
-                                      @RequestParam String dni,
-                                      @RequestParam(required = false) String telefono,
-                                      @RequestParam(required = false) String direccion,
-                                      @RequestParam(required = false) String distrito,
-                                      @RequestParam(required = false) String organizacion,
-                                      @RequestParam(required = false) String necesidadPrincipal,
-                                      @RequestParam(required = false) String observaciones) {
+    public Map<String, Object> editar(
+            @RequestParam int id,
+            @RequestParam(required = false) String organizacion,
+            @RequestParam(required = false) String direccion,
+            @RequestParam(required = false) String distrito,
+            @RequestParam(required = false) String necesidadPrincipal,
+            @RequestParam(required = false) String observaciones,
+            @RequestParam String nombreResponsable,
+            @RequestParam String apellidosResponsable,
+            @RequestParam String dni,
+            @RequestParam(required = false) String telefono) {
         try {
+            if (!esTextoValido(distrito) || !esTextoValido(necesidadPrincipal) || !esTextoValido(nombreResponsable) || !esTextoValido(apellidosResponsable)) {
+                return Map.of("success", false, "message", "Los campos de texto no deben contener números ni caracteres especiales.");
+            }
+
+            if (!esDniValido(dni)) {
+                return Map.of("success", false, "message", "El DNI debe contener exactamente 8 dígitos.");
+            }
+
+            if (telefono != null && !esTelefonoValido(telefono)) {
+                return Map.of("success", false, "message", "El teléfono debe contener exactamente 9 dígitos.");
+            }
+
             Beneficiario b = new Beneficiario();
             b.setIdBeneficiario(id);
-            b.setNombreResponsable(nombres);
-            b.setApellidosResponsable(apellidos);
-            b.setDni(dni);
-            b.setTelefono(telefono);
+            b.setOrganizacion(organizacion);
             b.setDireccion(direccion);
             b.setDistrito(distrito);
-            b.setOrganizacion(organizacion);
             b.setNecesidadPrincipal(necesidadPrincipal);
             b.setObservaciones(observaciones);
+            b.setNombreResponsable(nombreResponsable);
+            b.setApellidosResponsable(apellidosResponsable);
+            b.setDni(dni);
+            b.setTelefono(telefono);
 
             boolean ok = beneficiarioService.actualizarBeneficiario(b);
             return ok ? Map.of("success", true, "message", "Beneficiario actualizado correctamente")
@@ -112,18 +158,18 @@ public class BeneficiarioController {
 
     @PostMapping(params = "action=actualizar")
     @ResponseBody
-    public Map<String, Object> actualizar(@RequestParam int id,
-                                          @RequestParam String nombres,
-                                          @RequestParam String apellidos,
-                                          @RequestParam String dni,
-                                          @RequestParam(required = false) String telefono,
-                                          @RequestParam(required = false) String direccion,
-                                          @RequestParam(required = false) String distrito,
-                                          @RequestParam(required = false) String organizacion,
-                                          @RequestParam(required = false) String necesidadPrincipal,
-                                          @RequestParam(required = false) String observaciones) {
-        return editar(id, nombres, apellidos, dni, telefono, direccion,
-                distrito, organizacion, necesidadPrincipal, observaciones);
+    public Map<String, Object> actualizar(
+            @RequestParam int id,
+            @RequestParam(required = false) String organizacion,
+            @RequestParam(required = false) String direccion,
+            @RequestParam(required = false) String distrito,
+            @RequestParam(required = false) String necesidadPrincipal,
+            @RequestParam(required = false) String observaciones,
+            @RequestParam String nombreResponsable,
+            @RequestParam String apellidosResponsable,
+            @RequestParam String dni,
+            @RequestParam(required = false) String telefono) {
+        return editar(id, organizacion, direccion, distrito, necesidadPrincipal, observaciones, nombreResponsable, apellidosResponsable, dni, telefono);
     }
 
     @PostMapping(params = "action=cambiarEstado")

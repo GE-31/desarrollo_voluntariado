@@ -26,13 +26,31 @@ public class ActividadBeneficiario {
     private String observacion;
 
     @Transient
-    private String nombreBeneficiario;
+    private String organizacion;
 
     @Transient
-    private String dniBeneficiario;
+    private String direccion;
 
     @Transient
-    private String tipoBeneficiario;
+    private String distrito;
+
+    @Transient
+    private String necesidadPrincipal;
+
+    @Transient
+    private String observaciones;
+
+    @Transient
+    private String nombreResponsable;
+
+    @Transient
+    private String apellidosResponsable;
+
+    @Transient
+    private String dni;
+
+    @Transient
+    private String telefono;
 
     public ActividadBeneficiario() {}
 
@@ -44,10 +62,22 @@ public class ActividadBeneficiario {
     public void setIdBeneficiario(int idBeneficiario) { this.idBeneficiario = idBeneficiario; }
     public String getObservacion() { return observacion; }
     public void setObservacion(String observacion) { this.observacion = observacion; }
-    public String getNombreBeneficiario() { return nombreBeneficiario; }
-    public void setNombreBeneficiario(String nombreBeneficiario) { this.nombreBeneficiario = nombreBeneficiario; }
-    public String getDniBeneficiario() { return dniBeneficiario; }
-    public void setDniBeneficiario(String dniBeneficiario) { this.dniBeneficiario = dniBeneficiario; }
-    public String getTipoBeneficiario() { return tipoBeneficiario; }
-    public void setTipoBeneficiario(String tipoBeneficiario) { this.tipoBeneficiario = tipoBeneficiario; }
+    public String getOrganizacion() { return organizacion; }
+    public void setOrganizacion(String organizacion) { this.organizacion = organizacion; }
+    public String getDireccion() { return direccion; }
+    public void setDireccion(String direccion) { this.direccion = direccion; }
+    public String getDistrito() { return distrito; }
+    public void setDistrito(String distrito) { this.distrito = distrito; }
+    public String getNecesidadPrincipal() { return necesidadPrincipal; }
+    public void setNecesidadPrincipal(String necesidadPrincipal) { this.necesidadPrincipal = necesidadPrincipal; }
+    public String getObservaciones() { return observaciones; }
+    public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
+    public String getNombreResponsable() { return nombreResponsable; }
+    public void setNombreResponsable(String nombreResponsable) { this.nombreResponsable = nombreResponsable; }
+    public String getApellidosResponsable() { return apellidosResponsable; }
+    public void setApellidosResponsable(String apellidosResponsable) { this.apellidosResponsable = apellidosResponsable; }
+    public String getDni() { return dni; }
+    public void setDni(String dni) { this.dni = dni; }
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
 }

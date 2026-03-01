@@ -20,23 +20,6 @@ public class UsuarioRepositoryImpl implements UsuarioRepositoryCustom {
                                                   String username, String password) {
         try {
             String hash = new BCryptPasswordEncoder().encode(password);
-            try {
-                Object resultado = em.createNativeQuery(
-                        "CALL sp_registrar_usuario_con_voluntario(?1, ?2, ?3, ?4)")
-                        .setParameter(1, voluntarioId)
-                        .setParameter(2, rolSistemaId)
-                        .setParameter(3, username)
-                        .setParameter(4, hash)
-                        .getSingleResult();
-                int nuevoId = ((Number) resultado).intValue();
-                if (nuevoId > 0) {
-                    logger.info("Usuario creado con ID: " + nuevoId + " - username: " + username);
-                    return true;
-                }
-            } catch (Exception ignored) {
-                // Fallback para esquemas que no tienen sp_registrar_usuario_con_voluntario.
-            }
-
             Object[] datosVol = (Object[]) em.createNativeQuery(
                     "SELECT nombres, apellidos, correo, dni FROM voluntario WHERE id_voluntario = ?1")
                     .setParameter(1, voluntarioId)

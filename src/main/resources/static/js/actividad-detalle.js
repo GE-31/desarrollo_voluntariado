@@ -315,18 +315,23 @@ function cargarBeneficiarios() {
         .then(lista => {
             const tbody = document.getElementById('tbody-beneficiarios');
             if (!lista.length) {
-                tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">No hay beneficiarios vinculados aún</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">No hay beneficiarios vinculados aún</td></tr>';
                 return;
             }
             tbody.innerHTML = lista.map(ab => `<tr>
-                <td><strong>${ab.nombreBeneficiario}</strong></td>
-                <td>${ab.dniBeneficiario || '—'}</td>
-                <td>${ab.tipoBeneficiario || '—'}</td>
-                <td>${ab.observacion || '—'}</td>
+                <td>${ab.organizacion || '—'}</td>
+                <td>${ab.direccion || '—'}</td>
+                <td>${ab.distrito || '—'}</td>
+                <td>${ab.necesidadPrincipal || '—'}</td>
+                <td>${ab.observaciones || '—'}</td>
+                <td>${ab.nombreResponsable || '—'}</td>
+                <td>${ab.apellidosResponsable || '—'}</td>
+                <td>${ab.dni || '—'}</td>
+                <td>${ab.telefono || '—'}</td>
                 <td><button class="btn-icon delete" onclick="eliminarBeneficiario(${ab.idActividadBeneficiario})" title="Desvincular"><i class="fas fa-trash"></i></button></td>
             </tr>`).join('');
         }).catch(() => {
-            document.getElementById('tbody-beneficiarios').innerHTML = '<tr><td colspan="5" class="empty-msg">Error al cargar beneficiarios</td></tr>';
+            document.getElementById('tbody-beneficiarios').innerHTML = '<tr><td colspan="10" class="empty-msg">Error al cargar beneficiarios</td></tr>';
         });
 }
 
@@ -365,9 +370,9 @@ function renderBeneficiarioDropdown(lista) {
         return;
     }
     dropdown.innerHTML = lista.map(b => `
-        <div class="search-select-option" data-id="${b.idBeneficiario}" data-nombre="${b.nombres} ${b.apellidos}" data-dni="${b.dni || ''}" data-tipo="${b.tipoBeneficiario || ''}">
-            <div class="search-opt-name">${b.nombres} ${b.apellidos}</div>
-            <div class="search-opt-dni">DNI: ${b.dni || 'Sin DNI'} — ${b.tipoBeneficiario || ''}</div>
+        <div class="search-select-option" data-id="${b.idBeneficiario}" data-nombre="${b.nombreResponsable} ${b.apellidosResponsable}" data-dni="${b.dni || ''}">
+            <div class="search-opt-name">${b.organizacion || '—'} (${b.nombreResponsable || ''} ${b.apellidosResponsable || ''})</div>
+            <div class="search-opt-dni">DNI: ${b.dni || 'Sin DNI'} — ${b.distrito || ''}</div>
         </div>
     `).join('');
     dropdown.querySelectorAll('.search-select-option').forEach(opt => {
@@ -416,7 +421,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const q = this.value.trim().toLowerCase();
             document.getElementById('clearBeneficiarioBtn').style.display = q ? 'flex' : 'none';
             const filtrados = _listaBeneficiarios.filter(b => {
-                const texto = (b.nombres + ' ' + b.apellidos + ' ' + (b.dni || '') + ' ' + (b.tipoBeneficiario || '')).toLowerCase();
+                const texto = (
+                    (b.organizacion || '') + ' ' +
+                    (b.direccion || '') + ' ' +
+                    (b.distrito || '') + ' ' +
+                    (b.necesidadPrincipal || '') + ' ' +
+                    (b.observaciones || '') + ' ' +
+                    (b.nombreResponsable || '') + ' ' +
+                    (b.apellidosResponsable || '') + ' ' +
+                    (b.dni || '') + ' ' +
+                    (b.telefono || '')
+                ).toLowerCase();
                 return texto.includes(q);
             });
             renderBeneficiarioDropdown(filtrados);
@@ -425,7 +440,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!_beneficiarioSeleccionado && _listaBeneficiarios.length > 0) {
                 const q = this.value.trim().toLowerCase();
                 const filtrados = q ? _listaBeneficiarios.filter(b => {
-                    const texto = (b.nombres + ' ' + b.apellidos + ' ' + (b.dni || '')).toLowerCase();
+                    const texto = (
+                        (b.organizacion || '') + ' ' +
+                        (b.direccion || '') + ' ' +
+                        (b.distrito || '') + ' ' +
+                        (b.necesidadPrincipal || '') + ' ' +
+                        (b.observaciones || '') + ' ' +
+                        (b.nombreResponsable || '') + ' ' +
+                        (b.apellidosResponsable || '') + ' ' +
+                        (b.dni || '') + ' ' +
+                        (b.telefono || '')
+                    ).toLowerCase();
                     return texto.includes(q);
                 }) : _listaBeneficiarios;
                 renderBeneficiarioDropdown(filtrados);
@@ -497,13 +522,15 @@ async function guardarNuevoBeneficiario(e) {
     e.preventDefault();
     const params = new URLSearchParams();
     params.append('action', 'crear');
-    params.append('nombres', document.getElementById('nbNombres').value.trim());
-    params.append('apellidos', document.getElementById('nbApellidos').value.trim());
+    params.append('organizacion', document.getElementById('nbOrganizacion').value.trim());
+    params.append('direccion', document.getElementById('nbDireccion').value.trim());
+    params.append('distrito', document.getElementById('nbDistrito').value.trim());
+    params.append('necesidadPrincipal', document.getElementById('nbNecesidad').value.trim());
+    params.append('observaciones', document.getElementById('nbObservaciones').value.trim());
+    params.append('nombreResponsable', document.getElementById('nbNombreResponsable').value.trim());
+    params.append('apellidosResponsable', document.getElementById('nbApellidosResponsable').value.trim());
     params.append('dni', document.getElementById('nbDni').value.trim());
     params.append('telefono', document.getElementById('nbTelefono').value.trim());
-    params.append('tipoBeneficiario', document.getElementById('nbTipo').value);
-    params.append('necesidadPrincipal', document.getElementById('nbNecesidad').value);
-    params.append('direccion', document.getElementById('nbDireccion').value.trim());
 
     try {
         const response = await fetch('beneficiarios', {

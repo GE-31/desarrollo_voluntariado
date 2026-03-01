@@ -32,8 +32,8 @@
         <!-- Filtros -->
         <div class="usuarios-filtros">
             <div class="filtro-item">
-                <label>Correo</label>
-                <input type="text" id="filtroCorreo" placeholder="Filtrar por correo...">
+                <label>Buscar</label>
+                <input type="text" id="filtroCorreo" placeholder="Buscar...">
             </div>
             <div class="filtro-item">
                 <label>Estado</label>
@@ -107,7 +107,7 @@
             </div>
 
             <form id="formUsuario" onsubmit="guardarUsuario(event)" class="modal-form" style="max-height:70vh; overflow-y:auto;">
-                <input type="hidden" id="usuarioId">
+                <input type="hidden" id="usuarioId" name="usuarioId">
 
                 <!-- Campos de creación (ocultos en modo edición) -->
                 <div id="camposCreacion" class="form-grid">
@@ -115,7 +115,7 @@
                         <label class="form-label">
                             <span class="label-text">Voluntario</span><span class="required-indicator">*</span>
                         </label>
-                        <select id="voluntarioId" class="form-input" style="padding-left:0.75rem;">
+                        <select id="voluntarioId" name="voluntarioId" class="form-input" style="padding-left:0.75rem;">
                             <option value="">Seleccione un voluntario</option>
                         </select>
                     </div>
@@ -123,19 +123,19 @@
                         <label class="form-label">
                             <span class="label-text">Nombre de usuario</span><span class="required-indicator">*</span>
                         </label>
-                        <input type="text" id="username" class="form-input" style="padding-left:0.75rem;" placeholder="Ej: jperez" required>
+                        <input type="text" id="username" name="username" class="form-input" style="padding-left:0.75rem;" placeholder="Ej: jperez" required>
                     </div>
                     <div class="form-group">
                         <label class="form-label">
                             <span class="label-text">Contraseña</span><span class="required-indicator">*</span>
                         </label>
-                        <input type="password" id="password" class="form-input" style="padding-left:0.75rem;" placeholder="Mínimo 6 caracteres" minlength="6">
+                        <input type="password" id="password" name="password" class="form-input" style="padding-left:0.75rem;" placeholder="Mínimo 6 caracteres" minlength="6">
                     </div>
                     <div class="form-group">
                         <label class="form-label">
                             <span class="label-text">Confirmar contraseña</span><span class="required-indicator">*</span>
                         </label>
-                        <input type="password" id="confirmPassword" class="form-input" style="padding-left:0.75rem;" placeholder="Repita la contraseña">
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" style="padding-left:0.75rem;" placeholder="Repita la contraseña">
                     </div>
                 </div>
 

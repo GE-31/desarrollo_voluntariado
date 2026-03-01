@@ -43,15 +43,19 @@ function initFiltros() {
 }
 
 function aplicarFiltros() {
-    const correo = (document.getElementById('filtroCorreo')?.value || '').toLowerCase().trim();
+    const filtro = (document.getElementById('filtroCorreo')?.value || '').toLowerCase().trim();
     const estado = (document.getElementById('filtroEstado')?.value || '').toUpperCase().trim();
     const fecha  = (document.getElementById('filtroFecha')?.value || '').trim();
 
     usuariosFiltrados = todosUsuarios.filter(u => {
-        const coincideCorreo = !correo || (u.correo || '').toLowerCase().includes(correo);
+        const coincideFiltro = !filtro || 
+            (u.correo || '').toLowerCase().includes(filtro) ||
+            (u.username || '').toLowerCase().includes(filtro) ||
+            (u.nombreRol || '').toLowerCase().includes(filtro) ||
+            (u.estado || '').toLowerCase().includes(filtro);
         const coincideEstado = !estado || (u.estado || '').toUpperCase() === estado;
         const coincideFecha  = !fecha  || (u.creadoEn || '').slice(0, 10) === fecha;
-        return coincideCorreo && coincideEstado && coincideFecha;
+        return coincideFiltro && coincideEstado && coincideFecha;
     });
 
     paginaActual = 1;
@@ -220,9 +224,13 @@ function abrirModalCrear() {
 
 function abrirModalEditar(id) {
     modoEdicion = true;
-
     document.getElementById('modalTitulo').textContent        = 'Editar Permisos';
     document.getElementById('camposCreacion').style.display    = 'none';
+    // Deshabilitar campos de creación en modo edición para evitar errores de focus/validación
+    document.getElementById('username').disabled = true;
+    document.getElementById('password').disabled = true;
+    document.getElementById('confirmPassword').disabled = true;
+    document.getElementById('voluntarioId').disabled = true;
     document.getElementById('formUsuario').reset();
     document.getElementById('password').required              = false;
     document.getElementById('confirmPassword').required       = false;
@@ -234,8 +242,10 @@ function abrirModalEditar(id) {
                 mostrarNotificacion(data.error, 'error');
                 return;
             }
-
-            document.getElementById('usuarioId').value = data.idUsuario;
+            // Llenar el campo oculto después del reset
+            setTimeout(() => {
+                document.getElementById('usuarioId').value = data.idUsuario;
+            }, 0);
             document.getElementById('modalSubtitulo').textContent =
                 `Permisos de ${data.username} — ${data.nombreRol || 'Sin rol'}`;
 
@@ -257,6 +267,11 @@ function abrirModalEditar(id) {
 function cerrarModal() {
     document.getElementById('modalUsuario').style.display = 'none';
     document.body.style.overflow = 'auto';
+    // Habilitar campos de creación al cerrar modal
+    document.getElementById('username').disabled = false;
+    document.getElementById('password').disabled = false;
+    document.getElementById('confirmPassword').disabled = false;
+    document.getElementById('voluntarioId').disabled = false;
 }
 
 /* =====================================================================
@@ -266,6 +281,10 @@ function guardarUsuario(event) {
     event.preventDefault();
 
     const id = document.getElementById('usuarioId').value;
+    if (modoEdicion && !id) {
+        mostrarNotificacion('No se pudo identificar el usuario a editar. Intente de nuevo.', 'error');
+        return;
+    }
     const params = new URLSearchParams();
 
     if (!id) {

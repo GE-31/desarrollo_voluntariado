@@ -107,4 +107,33 @@ public class VoluntarioService {
         }
         return causa.getMessage() != null ? causa.getMessage() : "";
     }
+
+    @Transactional
+    public boolean existeDni(String dni, Integer idVoluntario) {
+        if (idVoluntario != null) {
+            return voluntarioRepository.countByDniAndIdNot(dni, idVoluntario) > 0;
+        }
+        return voluntarioRepository.countByDni(dni) > 0;
+    }
+
+    @Transactional
+    public boolean existeCorreo(String correo, Integer idVoluntario) {
+        if (idVoluntario != null) {
+            return voluntarioRepository.countByCorreoAndIdNot(correo, idVoluntario) > 0;
+        }
+        return voluntarioRepository.countByCorreo(correo) > 0;
+    }
+
+    @Transactional
+    public boolean existeTelefono(String telefono, Integer idVoluntario) {
+        if (idVoluntario != null) {
+            return voluntarioRepository.countByTelefonoAndIdNot(telefono, idVoluntario) > 0;
+        }
+        return voluntarioRepository.countByTelefono(telefono) > 0;
+    }
+
+    @Transactional
+    public List<Voluntario> buscarVoluntarios(String nombres, String apellidos, String dni, String correo, String telefono, String carrera, String cargo) {
+        return voluntarioRepository.buscarVoluntarios(nombres, apellidos, dni, correo, telefono, carrera, cargo);
+    }
 }

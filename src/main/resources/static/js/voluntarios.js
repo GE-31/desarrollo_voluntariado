@@ -192,8 +192,51 @@ function cerrarModal() {
 /* =====================================================================
    GUARDAR VOLUNTARIO
    ===================================================================== */
+function validarFormularioVoluntario() {
+    const dni = document.getElementById('dni').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
+    const nombres = document.getElementById('nombres').value.trim();
+    const apellidos = document.getElementById('apellidos').value.trim();
+    const carrera = document.getElementById('carrera').value.trim();
+
+    const regexSoloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    const regexDNI = /^\d{8}$/;
+    const regexTelefono = /^\d{9}$/;
+
+    if (!regexDNI.test(dni)) {
+        mostrarNotificacion('El DNI debe tener exactamente 8 dígitos numéricos.', 'error');
+        return false;
+    }
+
+    if (!regexTelefono.test(telefono)) {
+        mostrarNotificacion('El teléfono debe tener exactamente 9 dígitos numéricos.', 'error');
+        return false;
+    }
+
+    if (!regexSoloLetras.test(nombres)) {
+        mostrarNotificacion('El campo de nombres solo debe contener letras.', 'error');
+        return false;
+    }
+
+    if (!regexSoloLetras.test(apellidos)) {
+        mostrarNotificacion('El campo de apellidos solo debe contener letras.', 'error');
+        return false;
+    }
+
+    if (!regexSoloLetras.test(carrera)) {
+        mostrarNotificacion('El campo de carrera solo debe contener letras.', 'error');
+        return false;
+    }
+
+    return true;
+}
+
 function guardarVoluntario(event) {
     event.preventDefault();
+
+    if (!validarFormularioVoluntario()) {
+        return;
+    }
 
     const id       = document.getElementById('voluntarioId').value;
     const nombres  = document.getElementById('nombres').value.trim();
@@ -305,3 +348,94 @@ document.addEventListener('keydown', e => {
 window.onclick = function(e) {
     if (e.target === document.getElementById('modalVoluntario')) cerrarModal();
 };
+
+function buscarVoluntarios() {
+    const nombres = document.getElementById('filtroNombres')?.value || '';
+    const apellidos = document.getElementById('filtroApellidos')?.value || '';
+    const dni = document.getElementById('filtroDni')?.value || '';
+    const correo = document.getElementById('filtroCorreo')?.value || '';
+    const telefono = document.getElementById('filtroTelefono')?.value || '';
+    const carrera = document.getElementById('filtroCarrera')?.value || '';
+    const cargo = document.getElementById('filtroCargo')?.value || '';
+
+    const params = new URLSearchParams({
+        nombres, apellidos, dni, correo, telefono, carrera, cargo
+    });
+
+    fetch(`voluntarios?action=buscar&${params.toString()}`)
+        .then(r => r.json())
+        .then(data => {
+            todosVoluntarios = data;
+            paginaActualVol = 1;
+            renderTabla();
+        })
+        .catch(err => {
+            console.error('Error al buscar voluntarios:', err);
+            document.getElementById('voluntarios-tbody').innerHTML =
+                '<tr><td colspan="8" style="text-align:center; padding:2rem; color:#d32f2f;">Error al buscar voluntarios</td></tr>';
+        });
+}
+
+/* =====================================================================
+   FILTROS DE BÚSQUEDA
+   ===================================================================== */
+function filtrarVoluntarios() {
+    const filtroGeneral = document.getElementById('filtroGeneral').value.toLowerCase();
+    const filtroEstado = document.getElementById('filtroEstado').value;
+
+    const voluntariosFiltrados = todosVoluntarios.filter(v => {
+        const cumpleFiltroGeneral = filtroGeneral === '' || 
+            (v.nombres && v.nombres.toLowerCase().includes(filtroGeneral)) ||
+            (v.apellidos && v.apellidos.toLowerCase().includes(filtroGeneral)) ||
+            (v.dni && v.dni.toLowerCase().includes(filtroGeneral)) ||
+            (v.correo && v.correo.toLowerCase().includes(filtroGeneral)) ||
+            (v.telefono && v.telefono.toLowerCase().includes(filtroGeneral)) ||
+            (v.carrera && v.carrera.toLowerCase().includes(filtroGeneral)) ||
+            (v.cargo && v.cargo.toLowerCase().includes(filtroGeneral));
+
+        const cumpleFiltroEstado = filtroEstado === '' || (v.estado && v.estado.toUpperCase() === filtroEstado);
+
+        return cumpleFiltroGeneral && cumpleFiltroEstado;
+    });
+
+    renderTablaFiltrada(voluntariosFiltrados);
+}
+
+function renderTablaFiltrada(voluntarios) {
+    const tbody = document.getElementById('voluntarios-tbody');
+    if (!tbody) return;
+
+    if (voluntarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:#999;">No se encontraron resultados</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = voluntarios.map(v => {
+        const esActivo  = (v.estado || '').toUpperCase() === 'ACTIVO';
+        const estadoCls = esActivo ? 'activo' : 'inactivo';
+        const estadoTxt = esActivo ? 'ACTIVO' : 'INACTIVO';
+
+        return `<tr class="voluntario-row" data-id="${v.idVoluntario}">
+            <td><strong>${esc(v.nombres)} ${esc(v.apellidos)}</strong></td>
+            <td><span class="badge-dni">${esc(v.dni || 'N/A')}</span></td>
+            <td>${esc(v.correo || '-')}</td>
+            <td>${esc(v.telefono || '-')}</td>
+            <td>${esc(v.carrera || '-')}</td>
+            <td>${esc(v.cargo || '-')}</td>
+            <td><span class="estado-badge ${estadoCls}">${estadoTxt}</span></td>
+            <td class="acciones-cell">
+                <button class="btn-icon edit" onclick="abrirModalEditar(${v.idVoluntario})" title="Editar">✎</button>
+                ${esActivo
+                    ? `<button class="btn-icon disable" onclick="cambiarEstado(${v.idVoluntario},'INACTIVO')" title="Deshabilitar">⊘</button>`
+                    : `<button class="btn-icon enable"  onclick="cambiarEstado(${v.idVoluntario},'ACTIVO')"   title="Habilitar">✓</button>`
+                }
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtroGeneral').value = '';
+    document.getElementById('filtroEstado').value = '';
+    filtrarVoluntarios();
+}

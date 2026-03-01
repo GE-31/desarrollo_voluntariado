@@ -164,4 +164,75 @@ public class VoluntarioController {
         }
         return resp;
     }
+
+    // ── Validar y guardar voluntario ──
+    @PostMapping(params = {"action=crear", "action=editar"})
+    @ResponseBody
+    public Map<String, Object> validarYGuardarVoluntario(@RequestParam(required = false) Integer idVoluntario,
+                                                     @RequestParam String nombres,
+                                                     @RequestParam String apellidos,
+                                                     @RequestParam String dni,
+                                                     @RequestParam(required = false) String correo,
+                                                     @RequestParam(required = false) String telefono,
+                                                     @RequestParam(required = false) String carrera,
+                                                     @RequestParam(required = false) String cargo,
+                                                     HttpSession session) {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            // Validar duplicados
+            if (voluntarioService.existeDni(dni, idVoluntario)) {
+                resp.put("success", false);
+                resp.put("message", "El DNI ya está registrado.");
+                return resp;
+            }
+            if (correo != null && voluntarioService.existeCorreo(correo, idVoluntario)) {
+                resp.put("success", false);
+                resp.put("message", "El correo ya está registrado.");
+                return resp;
+            }
+            if (telefono != null && voluntarioService.existeTelefono(telefono, idVoluntario)) {
+                resp.put("success", false);
+                resp.put("message", "El teléfono ya está registrado.");
+                return resp;
+            }
+
+            // Guardar voluntario
+            Voluntario v = new Voluntario();
+            if (idVoluntario != null) {
+                v.setIdVoluntario(idVoluntario);
+            }
+            v.setNombres(nombres);
+            v.setApellidos(apellidos);
+            v.setDni(dni);
+            v.setCorreo(correo != null ? correo : "");
+            v.setTelefono(telefono != null ? telefono : "");
+            v.setCarrera(carrera != null ? carrera : "");
+            String cargoFinal = (cargo != null && !cargo.isBlank()) ? cargo.trim() : "Voluntario";
+            v.setCargo(cargoFinal);
+            v.setAccesoSistema(CARGOS_CON_ACCESO.contains(cargoFinal));
+            v.setIdUsuario(null);
+
+            boolean ok = idVoluntario == null ? voluntarioService.crearVoluntario(v) : voluntarioService.actualizarVoluntario(v);
+            resp.put("success", ok);
+            resp.put("message", ok ? "Voluntario guardado correctamente" : "Error al guardar voluntario");
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("message", "Error: " + e.getMessage());
+        }
+        return resp;
+    }
+
+    // ── Buscar voluntarios ──
+    @GetMapping(params = "action=buscar")
+    @ResponseBody
+    public List<Voluntario> buscar(
+            @RequestParam(required = false) String nombres,
+            @RequestParam(required = false) String apellidos,
+            @RequestParam(required = false) String dni,
+            @RequestParam(required = false) String correo,
+            @RequestParam(required = false) String telefono,
+            @RequestParam(required = false) String carrera,
+            @RequestParam(required = false) String cargo) {
+        return voluntarioService.buscarVoluntarios(nombres, apellidos, dni, correo, telefono, carrera, cargo);
+    }
 }

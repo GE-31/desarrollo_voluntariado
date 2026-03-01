@@ -18,6 +18,8 @@ public class Beneficiario {
     @Column(name = "id_beneficiario")
     private int idBeneficiario;
 
+    private String estado;
+
     private String organizacion;
 
     private String direccion;
@@ -39,39 +41,31 @@ public class Beneficiario {
 
     private String telefono;
 
-    private String estado;
-
     @Column(name = "id_usuario")
     private Integer idUsuario;
 
     @Column(name = "creado_en")
     private LocalDateTime creadoEn;
 
-    // Constructores
-    public Beneficiario() {
-    }
-
-    public Beneficiario(String nombreResponsable, String apellidosResponsable, String dni,
-            String telefono, String direccion, String distrito,
-            String organizacion, String necesidadPrincipal) {
-        this.nombreResponsable = nombreResponsable;
-        this.apellidosResponsable = apellidosResponsable;
-        this.dni = dni;
-        this.telefono = telefono;
-        this.direccion = direccion;
-        this.distrito = distrito;
-        this.organizacion = organizacion;
-        this.necesidadPrincipal = necesidadPrincipal;
-        this.estado = "ACTIVO";
-    }
+    // Constructor vacío obligatorio
+    public Beneficiario() {}
 
     // Getters y Setters
+
     public int getIdBeneficiario() {
         return idBeneficiario;
     }
 
     public void setIdBeneficiario(int idBeneficiario) {
         this.idBeneficiario = idBeneficiario;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
     }
 
     public String getOrganizacion() {
@@ -144,14 +138,6 @@ public class Beneficiario {
 
     public void setTelefono(String telefono) {
         this.telefono = telefono;
-    }
-
-    public String getEstado() {
-        return estado;
-    }
-
-    public void setEstado(String estado) {
-        this.estado = estado;
     }
 
     public Integer getIdUsuario() {

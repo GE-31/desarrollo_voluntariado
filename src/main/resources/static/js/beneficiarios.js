@@ -60,32 +60,23 @@ function renderTabla() {
         const esActivo = (b.estado || '').toUpperCase() === 'ACTIVO';
         const estadoCls = esActivo ? 'activo' : 'inactivo';
         const estadoTxt = esActivo ? 'ACTIVO' : 'INACTIVO';
-        const tipoCls = (b.tipoBeneficiario || 'individual').toLowerCase();
-
-        const obs = b.observaciones
-            ? (b.observaciones.length > 40 ? esc(b.observaciones.substring(0, 40)) + '...' : esc(b.observaciones))
-            : '';
-
         return `<tr class="beneficiario-row" data-id="${b.idBeneficiario}">
-            <td>
-                <div class="beneficiario-nombre">
-                    <strong>${esc(b.nombres)} ${esc(b.apellidos)}</strong>
-                    <small>${obs}</small>
-                </div>
-            </td>
-            <td><span class="badge-dni">${esc(b.dni || 'N/A')}</span></td>
-            <td>${esc(b.telefono || '—')}</td>
+            <td>${esc(b.organizacion || '—')}</td>
+            <td>${esc(b.direccion || '—')}</td>
             <td>${esc(b.distrito || '—')}</td>
-            <td><span class="badge-tipo ${tipoCls}">${esc(b.tipoBeneficiario || '—')}</span></td>
-            <td><span class="badge-necesidad">${esc(b.necesidadPrincipal || '—')}</span></td>
+            <td>${esc(b.necesidadPrincipal || '—')}</td>
+            <td>${esc(b.observaciones || '—')}</td>
+            <td>${esc(b.nombreResponsable || '—')}</td>
+            <td>${esc(b.apellidosResponsable || '—')}</td>
+            <td>${esc(b.dni || '—')}</td>
+            <td>${esc(b.telefono || '—')}</td>
             <td><span class="estado-badge ${estadoCls}">${estadoTxt}</span></td>
             <td class="acciones-cell">
-                <button class="btn-icon ver" onclick="verDetalle(${b.idBeneficiario})" title="Ver detalle">👁</button>
                 <button class="btn-icon edit" onclick="abrirModalEditar(${b.idBeneficiario})" title="Editar">✎</button>
                 ${esActivo
-                ? `<button class="btn-icon disable" onclick="cambiarEstado(${b.idBeneficiario},'INACTIVO')" title="Desactivar">⊘</button>`
-                : `<button class="btn-icon enable"  onclick="cambiarEstado(${b.idBeneficiario},'ACTIVO')"   title="Activar">✓</button>`
-            }
+                    ? `<button class="btn-icon disable" onclick="cambiarEstado(${b.idBeneficiario},'INACTIVO')" title="Deshabilitar">⊘</button>`
+                    : `<button class="btn-icon enable"  onclick="cambiarEstado(${b.idBeneficiario},'ACTIVO')"   title="Habilitar">✓</button>`
+                }
             </td>
         </tr>`;
     }).join('');
@@ -169,15 +160,15 @@ function abrirModalEditar(id) {
             if (b.error) { mostrarNotificacion(b.error, 'error'); return; }
 
             document.getElementById('beneficiarioId').value = b.idBeneficiario;
-            document.getElementById('dni').value = b.dni || '';
-            document.getElementById('nombres').value = b.nombreResponsable || '';
-            document.getElementById('apellidos').value = b.apellidosResponsable || '';
-            document.getElementById('telefono').value = b.telefono || '';
+            document.getElementById('organizacion').value = b.organizacion || '';
             document.getElementById('direccion').value = b.direccion || '';
             document.getElementById('distrito').value = b.distrito || '';
-            document.getElementById('organizacion').value = b.organizacion || '';
-            document.getElementById('necesidadPrincipal').value = b.necesidadPrincipal || 'OTRO';
+            document.getElementById('necesidadPrincipal').value = b.necesidadPrincipal || '';
             document.getElementById('observaciones').value = b.observaciones || '';
+            document.getElementById('nombreResponsable').value = b.nombreResponsable || '';
+            document.getElementById('apellidosResponsable').value = b.apellidosResponsable || '';
+            document.getElementById('dni').value = b.dni || '';
+            document.getElementById('telefono').value = b.telefono || '';
 
             document.getElementById('modalBeneficiario').style.display = 'flex';
             document.body.style.overflow = 'hidden';
@@ -205,58 +196,22 @@ function verDetalle(id) {
     fetch(`beneficiarios?action=obtener&id=${id}`)
         .then(r => r.json())
         .then(b => {
-            document.getElementById('detalleSubtitulo').textContent =
-                (b.nombreResponsable || '') + ' ' + (b.apellidosResponsable || '');
+                document.getElementById('detalleSubtitulo').textContent =
+                    (b.nombreResponsable || '') + ' ' + (b.apellidosResponsable || '');
 
             const body = document.getElementById('detalleBody');
             body.innerHTML = `
                 <div class="detalle-grid">
-                    <div class="detalle-item">
-                        <span class="detalle-label">Nombre Responsable</span>
-                        <span class="detalle-valor">${esc(b.nombreResponsable || '—')}</span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">Apellidos Responsable</span>
-                        <span class="detalle-valor">${esc(b.apellidosResponsable || '—')}</span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">DNI</span>
-                        <span class="detalle-valor">${esc(b.dni || '—')}</span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">Organización</span>
-                        <span class="detalle-valor">${esc(b.organizacion || '—')}</span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">Teléfono</span>
-                        <span class="detalle-valor">${esc(b.telefono || '—')}</span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">Distrito</span>
-                        <span class="detalle-valor">${esc(b.distrito || '—')}</span>
-                    </div>
-                    <div class="detalle-item full-width">
-                        <span class="detalle-label">Dirección</span>
-                        <span class="detalle-valor">${esc(b.direccion || '—')}</span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">Necesidad Principal</span>
-                        <span class="detalle-valor">${esc(b.necesidadPrincipal || '—')}</span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">Estado</span>
-                        <span class="detalle-valor">
-                            <span class="estado-badge ${(b.estado || '').toUpperCase() === 'ACTIVO' ? 'activo' : 'inactivo'}">${esc(b.estado || 'INACTIVO')}</span>
-                        </span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">Registrado</span>
-                        <span class="detalle-valor">${b.creadoEn ? (Array.isArray(b.creadoEn) ? b.creadoEn.slice(0, 3).join('-') : esc(b.creadoEn)) : '—'}</span>
-                    </div>
-                    <div class="detalle-item full-width">
-                        <span class="detalle-label">Observaciones</span>
-                        <span class="detalle-valor">${esc(b.observaciones || 'Sin observaciones')}</span>
-                    </div>
+                    <div class="detalle-item"><span class="detalle-label">Organización</span><span class="detalle-valor">${esc(b.organizacion || '—')}</span></div>
+                    <div class="detalle-item"><span class="detalle-label">Dirección</span><span class="detalle-valor">${esc(b.direccion || '—')}</span></div>
+                    <div class="detalle-item"><span class="detalle-label">Distrito</span><span class="detalle-valor">${esc(b.distrito || '—')}</span></div>
+                    <div class="detalle-item"><span class="detalle-label">Necesidad Principal</span><span class="detalle-valor">${esc(b.necesidadPrincipal || '—')}</span></div>
+                    <div class="detalle-item full-width"><span class="detalle-label">Observaciones</span><span class="detalle-valor">${esc(b.observaciones || 'Sin observaciones')}</span></div>
+                    <div class="detalle-item"><span class="detalle-label">Nombre Responsable</span><span class="detalle-valor">${esc(b.nombreResponsable || '—')}</span></div>
+                    <div class="detalle-item"><span class="detalle-label">Apellidos Responsable</span><span class="detalle-valor">${esc(b.apellidosResponsable || '—')}</span></div>
+                    <div class="detalle-item"><span class="detalle-label">DNI</span><span class="detalle-valor">${esc(b.dni || '—')}</span></div>
+                    <div class="detalle-item"><span class="detalle-label">Teléfono</span><span class="detalle-valor">${esc(b.telefono || '—')}</span></div>
+                    <div class="detalle-item"><span class="detalle-label">Estado</span><span class="detalle-valor"><span class="estado-badge ${(b.estado || '').toUpperCase() === 'ACTIVO' ? 'activo' : 'inactivo'}">${esc(b.estado || 'INACTIVO')}</span></span></div>
                 </div>
             `;
 
@@ -276,17 +231,17 @@ function guardarBeneficiario(event) {
     event.preventDefault();
 
     const id = document.getElementById('beneficiarioId').value;
-    const nombres = document.getElementById('nombres').value.trim();
-    const apellidos = document.getElementById('apellidos').value.trim();
-    const dni = document.getElementById('dni').value.trim();
-    const telefono = document.getElementById('telefono').value.trim();
+    const organizacion = document.getElementById('organizacion').value.trim();
     const direccion = document.getElementById('direccion').value.trim();
     const distrito = document.getElementById('distrito').value.trim();
-    const organizacion = document.getElementById('organizacion').value.trim();
-    const necesidadPrincipal = document.getElementById('necesidadPrincipal').value;
+    const necesidadPrincipal = document.getElementById('necesidadPrincipal').value.trim();
     const observaciones = document.getElementById('observaciones').value.trim();
+    const nombreResponsable = document.getElementById('nombreResponsable').value.trim();
+    const apellidosResponsable = document.getElementById('apellidosResponsable').value.trim();
+    const dni = document.getElementById('dni').value.trim();
+    const telefono = document.getElementById('telefono').value.trim();
 
-    if (!nombres || !apellidos || !dni) {
+    if (!nombreResponsable || !apellidosResponsable || !dni) {
         mostrarNotificacion('Completa los campos obligatorios', 'error');
         return;
     }
@@ -294,15 +249,15 @@ function guardarBeneficiario(event) {
     const params = new URLSearchParams();
     params.append('action', id ? 'editar' : 'crear');
     if (id) params.append('id', id);
-    params.append('nombres', nombres);
-    params.append('apellidos', apellidos);
-    params.append('dni', dni);
-    params.append('telefono', telefono);
+    params.append('organizacion', organizacion);
     params.append('direccion', direccion);
     params.append('distrito', distrito);
-    params.append('organizacion', organizacion);
     params.append('necesidadPrincipal', necesidadPrincipal);
     params.append('observaciones', observaciones);
+    params.append('nombreResponsable', nombreResponsable);
+    params.append('apellidosResponsable', apellidosResponsable);
+    params.append('dni', dni);
+    params.append('telefono', telefono);
 
     fetch('beneficiarios', {
         method: 'POST',
@@ -388,3 +343,72 @@ document.addEventListener('click', e => {
     if (e.target === document.getElementById('modalBeneficiario')) cerrarModal();
     if (e.target === document.getElementById('modalDetalle')) cerrarModalDetalle();
 });
+
+/* =====================================================================
+   FILTROS DE BÚSQUEDA
+   ===================================================================== */
+function filtrarBeneficiarios() {
+    const filtroGeneral = document.getElementById('filtroGeneral').value.toLowerCase();
+    const filtroEstado = document.getElementById('filtroEstado').value;
+
+    const beneficiariosFiltrados = todosBeneficiarios.filter(b => {
+        const cumpleFiltroGeneral = filtroGeneral === '' || 
+            (b.organizacion && b.organizacion.toLowerCase().includes(filtroGeneral)) ||
+            (b.direccion && b.direccion.toLowerCase().includes(filtroGeneral)) ||
+            (b.distrito && b.distrito.toLowerCase().includes(filtroGeneral)) ||
+            (b.necesidadPrincipal && b.necesidadPrincipal.toLowerCase().includes(filtroGeneral)) ||
+            (b.observaciones && b.observaciones.toLowerCase().includes(filtroGeneral)) ||
+            (b.nombreResponsable && b.nombreResponsable.toLowerCase().includes(filtroGeneral)) ||
+            (b.apellidosResponsable && b.apellidosResponsable.toLowerCase().includes(filtroGeneral)) ||
+            (b.dni && b.dni.toLowerCase().includes(filtroGeneral)) ||
+            (b.telefono && b.telefono.toLowerCase().includes(filtroGeneral));
+
+        const cumpleFiltroEstado = filtroEstado === '' || (b.estado && b.estado.toUpperCase() === filtroEstado);
+
+        return cumpleFiltroGeneral && cumpleFiltroEstado;
+    });
+
+    renderTablaFiltrada(beneficiariosFiltrados);
+}
+
+function renderTablaFiltrada(beneficiarios) {
+    const tbody = document.getElementById('beneficiarios-tbody');
+    if (!tbody) return;
+
+    if (beneficiarios.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:2rem; color:#999;">No se encontraron resultados</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = beneficiarios.map(b => {
+        const esActivo = (b.estado || '').toUpperCase() === 'ACTIVO';
+        const estadoCls = esActivo ? 'activo' : 'inactivo';
+        const estadoTxt = esActivo ? 'ACTIVO' : 'INACTIVO';
+
+        return `<tr class="beneficiario-row" data-id="${b.idBeneficiario}">
+            <td>${esc(b.organizacion)}</td>
+            <td>${esc(b.direccion)}</td>
+            <td>${esc(b.distrito)}</td>
+            <td>${esc(b.necesidadPrincipal)}</td>
+            <td>${esc(b.observaciones || '-')}</td>
+            <td>${esc(b.nombreResponsable)}</td>
+            <td>${esc(b.apellidosResponsable)}</td>
+            <td>${esc(b.dni)}</td>
+            <td>${esc(b.telefono)}</td>
+            <td><span class="estado-badge ${estadoCls}">${estadoTxt}</span></td>
+            <td class="acciones-cell">
+                <button class="btn-icon edit" onclick="abrirModalEditar(${b.idBeneficiario})" title="Editar">✎</button>
+                ${esActivo
+                    ? `<button class="btn-icon disable" onclick="cambiarEstado(${b.idBeneficiario},'INACTIVO')" title="Deshabilitar">⊘</button>`
+                    : `<button class="btn-icon enable"  onclick="cambiarEstado(${b.idBeneficiario},'ACTIVO')"   title="Habilitar">✓</button>`
+                }
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtroGeneral').value = '';
+    document.getElementById('filtroEstado').value = '';
+    filtrarBeneficiarios();
+}

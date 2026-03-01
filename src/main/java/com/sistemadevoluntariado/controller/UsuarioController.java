@@ -46,8 +46,6 @@ public class UsuarioController {
     @ResponseBody
     public List<Map<String, Object>> listar() {
         List<Usuario> usuarios = usuarioService.obtenerTodosUsuarios();
-        Map<Integer, String> rolesPorUsuario = rolSistemaService.obtenerRolesPorUsuario();
-
         List<Map<String, Object>> resultado = new ArrayList<>();
         for (Usuario u : usuarios) {
             Map<String, Object> item = new HashMap<>();
@@ -63,11 +61,12 @@ public class UsuarioController {
                 item.put("nombres", vol.getNombres());
                 item.put("apellidos", vol.getApellidos());
                 item.put("idVoluntario", vol.getIdVoluntario());
+                item.put("nombreRol", vol.getCargo() != null && !vol.getCargo().isBlank() ? vol.getCargo() : "Sin rol");
             } else {
                 item.put("nombres", u.getNombres());
                 item.put("apellidos", u.getApellidos());
+                item.put("nombreRol", "Sin rol");
             }
-            item.put("nombreRol", rolesPorUsuario.getOrDefault(u.getIdUsuario(), "Sin rol"));
             resultado.add(item);
         }
         return resultado;
