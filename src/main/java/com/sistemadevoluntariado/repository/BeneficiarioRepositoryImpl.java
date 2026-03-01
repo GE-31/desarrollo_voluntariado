@@ -1,6 +1,5 @@
 package com.sistemadevoluntariado.repository;
 
-import java.sql.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,28 +21,26 @@ public class BeneficiarioRepositoryImpl implements BeneficiarioRepositoryCustom 
     @Override
     public int crearBeneficiario(Beneficiario b) {
         try {
-            StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_crear_beneficiario_adaptado");
-            spq.registerStoredProcedureParameter("p_nombres",             String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_apellidos",           String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_dni",                 String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_fecha_nacimiento",    Date.class,    ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_telefono",            String.class,  ParameterMode.IN);
+            StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_crear_beneficiario_nuevo");
+            spq.registerStoredProcedureParameter("p_organizacion",        String.class,  ParameterMode.IN);
             spq.registerStoredProcedureParameter("p_direccion",           String.class,  ParameterMode.IN);
             spq.registerStoredProcedureParameter("p_distrito",            String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_tipo_beneficiario",   String.class,  ParameterMode.IN);
             spq.registerStoredProcedureParameter("p_necesidad_principal", String.class,  ParameterMode.IN);
             spq.registerStoredProcedureParameter("p_observaciones",       String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_nombre_responsable",  String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_apellidos_responsable", String.class, ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_dni",                 String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_telefono",            String.class,  ParameterMode.IN);
             spq.registerStoredProcedureParameter("p_id_usuario",          Integer.class, ParameterMode.IN);
-            spq.setParameter("p_nombres",             b.getNombres());
-            spq.setParameter("p_apellidos",           b.getApellidos());
-            spq.setParameter("p_dni",                 b.getDni());
-            spq.setParameter("p_fecha_nacimiento",    b.getFechaNacimiento() != null ? Date.valueOf(b.getFechaNacimiento()) : null);
-            spq.setParameter("p_telefono",            b.getTelefono());
+            spq.setParameter("p_organizacion",        b.getOrganizacion());
             spq.setParameter("p_direccion",           b.getDireccion());
             spq.setParameter("p_distrito",            b.getDistrito());
-            spq.setParameter("p_tipo_beneficiario",   b.getTipoBeneficiario());
             spq.setParameter("p_necesidad_principal", b.getNecesidadPrincipal());
             spq.setParameter("p_observaciones",       b.getObservaciones());
+            spq.setParameter("p_nombre_responsable",  b.getNombreResponsable());
+            spq.setParameter("p_apellidos_responsable", b.getApellidosResponsable());
+            spq.setParameter("p_dni",                 b.getDni());
+            spq.setParameter("p_telefono",            b.getTelefono());
             spq.setParameter("p_id_usuario",          b.getIdUsuario() != null ? b.getIdUsuario() : 0);
             @SuppressWarnings("unchecked")
             List<Object[]> rows = spq.getResultList();
@@ -53,7 +50,7 @@ public class BeneficiarioRepositoryImpl implements BeneficiarioRepositoryCustom 
                 if (val instanceof Object[]) newId = ((Number)((Object[])val)[0]).intValue();
                 else newId = ((Number)val).intValue();
             }
-            logger.info("✓ Beneficiario creado (ID=" + newId + "): " + b.getNombres() + " " + b.getApellidos());
+            logger.info("✓ Beneficiario creado (ID=" + newId + "): " + b.getNombreResponsable() + " " + b.getApellidosResponsable());
             return newId;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "✗ Error al crear beneficiario: " + e.getMessage(), e);
@@ -94,31 +91,29 @@ public class BeneficiarioRepositoryImpl implements BeneficiarioRepositoryCustom 
     @Override
     public boolean actualizarBeneficiario(Beneficiario b) {
         try {
-            StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_actualizar_beneficiario");
-            spq.registerStoredProcedureParameter("p_id_beneficiario",    Integer.class, ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_nombres",            String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_apellidos",          String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_dni",                String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_fecha_nacimiento",   Date.class,    ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_telefono",           String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_direccion",          String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_distrito",           String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_tipo_beneficiario",  String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_necesidad_principal",String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_observaciones",      String.class,  ParameterMode.IN);
-            spq.setParameter("p_id_beneficiario",    b.getIdBeneficiario());
-            spq.setParameter("p_nombres",            b.getNombres());
-            spq.setParameter("p_apellidos",          b.getApellidos());
-            spq.setParameter("p_dni",                b.getDni());
-            spq.setParameter("p_fecha_nacimiento",   b.getFechaNacimiento() != null ? Date.valueOf(b.getFechaNacimiento()) : null);
-            spq.setParameter("p_telefono",           b.getTelefono());
-            spq.setParameter("p_direccion",          b.getDireccion());
-            spq.setParameter("p_distrito",           b.getDistrito());
-            spq.setParameter("p_tipo_beneficiario",  b.getTipoBeneficiario());
-            spq.setParameter("p_necesidad_principal",b.getNecesidadPrincipal());
-            spq.setParameter("p_observaciones",      b.getObservaciones());
+            StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_actualizar_beneficiario_nuevo");
+            spq.registerStoredProcedureParameter("p_id_beneficiario",      Integer.class, ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_organizacion",         String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_direccion",            String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_distrito",             String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_necesidad_principal",  String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_observaciones",        String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_nombre_responsable",   String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_apellidos_responsable",String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_dni",                  String.class,  ParameterMode.IN);
+            spq.registerStoredProcedureParameter("p_telefono",             String.class,  ParameterMode.IN);
+            spq.setParameter("p_id_beneficiario",      b.getIdBeneficiario());
+            spq.setParameter("p_organizacion",         b.getOrganizacion());
+            spq.setParameter("p_direccion",            b.getDireccion());
+            spq.setParameter("p_distrito",             b.getDistrito());
+            spq.setParameter("p_necesidad_principal",  b.getNecesidadPrincipal());
+            spq.setParameter("p_observaciones",        b.getObservaciones());
+            spq.setParameter("p_nombre_responsable",   b.getNombreResponsable());
+            spq.setParameter("p_apellidos_responsable",b.getApellidosResponsable());
+            spq.setParameter("p_dni",                  b.getDni());
+            spq.setParameter("p_telefono",             b.getTelefono());
             spq.execute();
-            logger.info("✓ Beneficiario actualizado correctamente: " + b.getNombres());
+            logger.info("✓ Beneficiario actualizado correctamente: " + b.getNombreResponsable());
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "✗ Error al actualizar beneficiario", e);

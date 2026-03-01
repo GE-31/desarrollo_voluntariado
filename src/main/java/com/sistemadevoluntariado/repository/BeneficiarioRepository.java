@@ -14,6 +14,6 @@ public interface BeneficiarioRepository extends JpaRepository<Beneficiario, Inte
 
     Optional<Beneficiario> findByDni(String dni);
 
-    @Query("SELECT b FROM Beneficiario b WHERE b.estado = 'ACTIVO' AND b.nombres IS NOT NULL ORDER BY b.idBeneficiario DESC")
+    @Query("SELECT b FROM Beneficiario b WHERE b.estado = 'ACTIVO' AND b.nombreResponsable IS NOT NULL ORDER BY b.idBeneficiario DESC")
     List<Beneficiario> obtenerActivos();
 }

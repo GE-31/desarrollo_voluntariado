@@ -487,19 +487,19 @@ public class ReportesController {
         crearSubtitulo(sheet, r++, subtitleStyle, lista.size() + " registros | Generado: " + LocalDate.now());
         r++;
 
-        String[] headers = {"#", "Nombres", "Apellidos", "DNI", "Teléfono", "Distrito", "Tipo", "Necesidad", "Estado"};
+        String[] headers = {"#", "Nombre Responsable", "Apellidos Responsable", "DNI", "Teléfono", "Distrito", "Organización", "Necesidad", "Estado"};
         crearCabecera(sheet, r++, headerStyle, headers);
 
         int n = 1;
         for (Beneficiario b : lista) {
             Row row = sheet.createRow(r++);
             row.createCell(0).setCellValue(n++);
-            row.createCell(1).setCellValue(safe(b.getNombres()));
-            row.createCell(2).setCellValue(safe(b.getApellidos()));
+            row.createCell(1).setCellValue(safe(b.getNombreResponsable()));
+            row.createCell(2).setCellValue(safe(b.getApellidosResponsable()));
             row.createCell(3).setCellValue(safe(b.getDni()));
             row.createCell(4).setCellValue(safe(b.getTelefono()));
             row.createCell(5).setCellValue(safe(b.getDistrito()));
-            row.createCell(6).setCellValue(safe(b.getTipoBeneficiario()));
+            row.createCell(6).setCellValue(safe(b.getOrganizacion()));
             row.createCell(7).setCellValue(safe(b.getNecesidadPrincipal()));
             row.createCell(8).setCellValue(safe(b.getEstado()));
         }

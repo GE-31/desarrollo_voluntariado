@@ -1,6 +1,5 @@
 package com.sistemadevoluntariado.controller;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -53,11 +52,10 @@ public class BeneficiarioController {
     public Map<String, Object> crear(@RequestParam String nombres,
                                      @RequestParam String apellidos,
                                      @RequestParam String dni,
-                                     @RequestParam(required = false) String fechaNacimiento,
                                      @RequestParam(required = false) String telefono,
                                      @RequestParam(required = false) String direccion,
                                      @RequestParam(required = false) String distrito,
-                                     @RequestParam(required = false) String tipoBeneficiario,
+                                     @RequestParam(required = false) String organizacion,
                                      @RequestParam(required = false) String necesidadPrincipal,
                                      @RequestParam(required = false) String observaciones,
                                      HttpSession session) {
@@ -66,10 +64,7 @@ public class BeneficiarioController {
             if (usuario == null) return Map.of("success", false, "message", "No autorizado");
 
             Beneficiario b = new Beneficiario(nombres, apellidos, dni, telefono, direccion,
-                    distrito, tipoBeneficiario, necesidadPrincipal);
-            if (fechaNacimiento != null && !fechaNacimiento.trim().isEmpty()) {
-                b.setFechaNacimiento(LocalDate.parse(fechaNacimiento));
-            }
+                    distrito, organizacion, necesidadPrincipal);
             b.setObservaciones(observaciones);
             b.setIdUsuario(usuario.getIdUsuario());
 
@@ -88,28 +83,24 @@ public class BeneficiarioController {
                                       @RequestParam String nombres,
                                       @RequestParam String apellidos,
                                       @RequestParam String dni,
-                                      @RequestParam(required = false) String fechaNacimiento,
                                       @RequestParam(required = false) String telefono,
                                       @RequestParam(required = false) String direccion,
                                       @RequestParam(required = false) String distrito,
-                                      @RequestParam(required = false) String tipoBeneficiario,
+                                      @RequestParam(required = false) String organizacion,
                                       @RequestParam(required = false) String necesidadPrincipal,
                                       @RequestParam(required = false) String observaciones) {
         try {
             Beneficiario b = new Beneficiario();
             b.setIdBeneficiario(id);
-            b.setNombres(nombres);
-            b.setApellidos(apellidos);
+            b.setNombreResponsable(nombres);
+            b.setApellidosResponsable(apellidos);
             b.setDni(dni);
             b.setTelefono(telefono);
             b.setDireccion(direccion);
             b.setDistrito(distrito);
-            b.setTipoBeneficiario(tipoBeneficiario);
+            b.setOrganizacion(organizacion);
             b.setNecesidadPrincipal(necesidadPrincipal);
             b.setObservaciones(observaciones);
-            if (fechaNacimiento != null && !fechaNacimiento.trim().isEmpty()) {
-                b.setFechaNacimiento(LocalDate.parse(fechaNacimiento));
-            }
 
             boolean ok = beneficiarioService.actualizarBeneficiario(b);
             return ok ? Map.of("success", true, "message", "Beneficiario actualizado correctamente")
@@ -125,15 +116,14 @@ public class BeneficiarioController {
                                           @RequestParam String nombres,
                                           @RequestParam String apellidos,
                                           @RequestParam String dni,
-                                          @RequestParam(required = false) String fechaNacimiento,
                                           @RequestParam(required = false) String telefono,
                                           @RequestParam(required = false) String direccion,
                                           @RequestParam(required = false) String distrito,
-                                          @RequestParam(required = false) String tipoBeneficiario,
+                                          @RequestParam(required = false) String organizacion,
                                           @RequestParam(required = false) String necesidadPrincipal,
                                           @RequestParam(required = false) String observaciones) {
-        return editar(id, nombres, apellidos, dni, fechaNacimiento, telefono, direccion,
-                distrito, tipoBeneficiario, necesidadPrincipal, observaciones);
+        return editar(id, nombres, apellidos, dni, telefono, direccion,
+                distrito, organizacion, necesidadPrincipal, observaciones);
     }
 
     @PostMapping(params = "action=cambiarEstado")

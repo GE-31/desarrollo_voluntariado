@@ -170,13 +170,12 @@ function abrirModalEditar(id) {
 
             document.getElementById('beneficiarioId').value = b.idBeneficiario;
             document.getElementById('dni').value = b.dni || '';
-            document.getElementById('nombres').value = b.nombres || '';
-            document.getElementById('apellidos').value = b.apellidos || '';
-            document.getElementById('fechaNacimiento').value = b.fechaNacimiento || '';
+            document.getElementById('nombres').value = b.nombreResponsable || '';
+            document.getElementById('apellidos').value = b.apellidosResponsable || '';
             document.getElementById('telefono').value = b.telefono || '';
             document.getElementById('direccion').value = b.direccion || '';
             document.getElementById('distrito').value = b.distrito || '';
-            document.getElementById('tipoBeneficiario').value = b.tipoBeneficiario || 'INDIVIDUAL';
+            document.getElementById('organizacion').value = b.organizacion || '';
             document.getElementById('necesidadPrincipal').value = b.necesidadPrincipal || 'OTRO';
             document.getElementById('observaciones').value = b.observaciones || '';
 
@@ -207,26 +206,26 @@ function verDetalle(id) {
         .then(r => r.json())
         .then(b => {
             document.getElementById('detalleSubtitulo').textContent =
-                (b.nombres || '') + ' ' + (b.apellidos || '');
+                (b.nombreResponsable || '') + ' ' + (b.apellidosResponsable || '');
 
             const body = document.getElementById('detalleBody');
             body.innerHTML = `
                 <div class="detalle-grid">
                     <div class="detalle-item">
-                        <span class="detalle-label">Nombres</span>
-                        <span class="detalle-valor">${esc(b.nombres || '—')}</span>
+                        <span class="detalle-label">Nombre Responsable</span>
+                        <span class="detalle-valor">${esc(b.nombreResponsable || '—')}</span>
                     </div>
                     <div class="detalle-item">
-                        <span class="detalle-label">Apellidos</span>
-                        <span class="detalle-valor">${esc(b.apellidos || '—')}</span>
+                        <span class="detalle-label">Apellidos Responsable</span>
+                        <span class="detalle-valor">${esc(b.apellidosResponsable || '—')}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">DNI</span>
                         <span class="detalle-valor">${esc(b.dni || '—')}</span>
                     </div>
                     <div class="detalle-item">
-                        <span class="detalle-label">Fecha de Nacimiento</span>
-                        <span class="detalle-valor">${esc(b.fechaNacimiento || '—')}</span>
+                        <span class="detalle-label">Organización</span>
+                        <span class="detalle-valor">${esc(b.organizacion || '—')}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Teléfono</span>
@@ -239,10 +238,6 @@ function verDetalle(id) {
                     <div class="detalle-item full-width">
                         <span class="detalle-label">Dirección</span>
                         <span class="detalle-valor">${esc(b.direccion || '—')}</span>
-                    </div>
-                    <div class="detalle-item">
-                        <span class="detalle-label">Tipo</span>
-                        <span class="detalle-valor">${esc(b.tipoBeneficiario || '—')}</span>
                     </div>
                     <div class="detalle-item">
                         <span class="detalle-label">Necesidad Principal</span>
@@ -284,11 +279,10 @@ function guardarBeneficiario(event) {
     const nombres = document.getElementById('nombres').value.trim();
     const apellidos = document.getElementById('apellidos').value.trim();
     const dni = document.getElementById('dni').value.trim();
-    const fechaNacimiento = document.getElementById('fechaNacimiento').value;
     const telefono = document.getElementById('telefono').value.trim();
     const direccion = document.getElementById('direccion').value.trim();
     const distrito = document.getElementById('distrito').value.trim();
-    const tipoBeneficiario = document.getElementById('tipoBeneficiario').value;
+    const organizacion = document.getElementById('organizacion').value.trim();
     const necesidadPrincipal = document.getElementById('necesidadPrincipal').value;
     const observaciones = document.getElementById('observaciones').value.trim();
 
@@ -303,11 +297,10 @@ function guardarBeneficiario(event) {
     params.append('nombres', nombres);
     params.append('apellidos', apellidos);
     params.append('dni', dni);
-    params.append('fechaNacimiento', fechaNacimiento);
     params.append('telefono', telefono);
     params.append('direccion', direccion);
     params.append('distrito', distrito);
-    params.append('tipoBeneficiario', tipoBeneficiario);
+    params.append('organizacion', organizacion);
     params.append('necesidadPrincipal', necesidadPrincipal);
     params.append('observaciones', observaciones);
 

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 27-02-2026 a las 00:37:49
+-- Tiempo de generación: 01-03-2026 a las 19:19:53
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -100,19 +100,18 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_asistencia` (IN `p_id
     SELECT ROW_COUNT() AS filas_afectadas;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_beneficiario` (IN `p_id_beneficiario` INT, IN `p_nombres` VARCHAR(100), IN `p_apellidos` VARCHAR(100), IN `p_dni` VARCHAR(20), IN `p_fecha_nacimiento` DATE, IN `p_telefono` VARCHAR(20), IN `p_direccion` VARCHAR(255), IN `p_distrito` VARCHAR(100), IN `p_tipo_beneficiario` VARCHAR(20), IN `p_necesidad_principal` VARCHAR(30), IN `p_observaciones` TEXT)   BEGIN
-    UPDATE beneficiario
-    SET nombres             = p_nombres,
-        apellidos           = p_apellidos,
-        dni                 = p_dni,
-        fecha_nacimiento    = p_fecha_nacimiento,
-        telefono            = p_telefono,
-        direccion           = p_direccion,
-        distrito            = p_distrito,
-        tipo_beneficiario   = p_tipo_beneficiario,
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_beneficiario_nuevo` (IN `p_id_beneficiario` INT, IN `p_organizacion` VARCHAR(255), IN `p_direccion` VARCHAR(255), IN `p_distrito` VARCHAR(100), IN `p_necesidad_principal` VARCHAR(100), IN `p_observaciones` TEXT, IN `p_nombre_responsable` VARCHAR(100), IN `p_apellidos_responsable` VARCHAR(100), IN `p_dni` VARCHAR(20), IN `p_telefono` VARCHAR(20))   BEGIN
+    UPDATE beneficiario SET
+        organizacion = p_organizacion,
+        direccion = p_direccion,
+        distrito = p_distrito,
         necesidad_principal = p_necesidad_principal,
-        observaciones       = p_observaciones
-    WHERE id_beneficiario   = p_id_beneficiario;
+        observaciones = p_observaciones,
+        nombre_responsable = p_nombre_responsable,
+        apellidos_responsable = p_apellidos_responsable,
+        dni = p_dni,
+        telefono = p_telefono
+    WHERE id_beneficiario = p_id_beneficiario;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_detalle_especie` (IN `p_id_donacion` INT, IN `p_cantidad` DECIMAL(10,2), IN `p_observacion` VARCHAR(255))   BEGIN
@@ -124,7 +123,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_detalle_especie` (IN 
     SELECT ROW_COUNT() AS filas_afectadas;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_donacion_inventario` (IN `p_id_donacion` INT, IN `p_cantidad` DECIMAL(10,2), IN `p_descripcion` VARCHAR(150), IN `p_id_actividad` INT, IN `p_donacion_anonima` TINYINT, IN `p_donante_tipo` VARCHAR(20), IN `p_donante_nombre` VARCHAR(150), IN `p_donante_correo` VARCHAR(100), IN `p_donante_telefono` VARCHAR(30), IN `p_donante_dni` VARCHAR(20), IN `p_donante_ruc` VARCHAR(20), IN `p_id_usuario_edicion` INT, IN `p_motivo_edicion` VARCHAR(255))   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_donacion_inventario` (IN `p_id_donacion` INT, IN `p_cantidad` DECIMAL(10,2), IN `p_descripcion` VARCHAR(150), IN `p_subtipo_donacion` VARCHAR(50), IN `p_id_actividad` INT, IN `p_donacion_anonima` TINYINT, IN `p_donante_tipo` VARCHAR(20), IN `p_donante_nombre` VARCHAR(150), IN `p_donante_correo` VARCHAR(100), IN `p_donante_telefono` VARCHAR(30), IN `p_donante_dni` VARCHAR(20), IN `p_donante_ruc` VARCHAR(20), IN `p_id_usuario_edicion` INT, IN `p_motivo_edicion` VARCHAR(255))   BEGIN
     DECLARE v_tipo INT;
     DECLARE v_id_donante INT DEFAULT NULL;
     DECLARE v_tipo_donante VARCHAR(20) DEFAULT NULL;
@@ -156,6 +155,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_donacion_inventario` 
     UPDATE donacion
     SET cantidad = CASE WHEN v_tipo = 1 THEN p_cantidad ELSE cantidad END,
         descripcion = p_descripcion,
+        subtipo_donacion = NULLIF(TRIM(p_subtipo_donacion),''),
         id_actividad = p_id_actividad,
         actualizado_en = NOW()
     WHERE id_donacion = p_id_donacion;
@@ -179,8 +179,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_donacion_inventario` 
           AND dnt.tipo = v_tipo_donante
           AND (
                 IFNULL(TRIM(dnt.correo), '') = IFNULL(TRIM(p_donante_correo), '')
-             OR IFNULL(TRIM(dnt.telefono), '') = IFNULL(TRIM(p_donante_telefono), '')
-             OR IFNULL(TRIM(dnt.dni), '') = IFNULL(TRIM(p_donante_dni), '')
+                OR IFNULL(TRIM(dnt.telefono), '') = IFNULL(TRIM(p_donante_telefono), '')
+                OR IFNULL(TRIM(dnt.dni), '') = IFNULL(TRIM(p_donante_dni), '')
           )
         LIMIT 1;
 
@@ -414,6 +414,10 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_cambiar_estado_beneficiario` (IN
     WHERE id_beneficiario = p_id_beneficiario;
 END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_cambiar_estado_beneficiario_nuevo` (IN `p_id_beneficiario` INT, IN `p_estado` VARCHAR(10))   BEGIN
+    UPDATE beneficiario SET estado = p_estado WHERE id_beneficiario = p_id_beneficiario;
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_cambiar_estado_donacion` (IN `p_id_donacion` INT, IN `p_estado` VARCHAR(20))   BEGIN
     UPDATE donacion
     SET estado = p_estado,
@@ -496,28 +500,15 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_actividad` (IN `p_nombre` 
     VALUES (p_nombre, p_descripcion, p_fecha_inicio, p_fecha_fin, p_ubicacion, p_cupo_maximo, p_id_usuario);
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_beneficiario` (IN `p_nombres` VARCHAR(100), IN `p_apellidos` VARCHAR(100), IN `p_dni` VARCHAR(20), IN `p_fecha_nacimiento` DATE, IN `p_telefono` VARCHAR(20), IN `p_direccion` VARCHAR(255), IN `p_distrito` VARCHAR(100), IN `p_tipo_beneficiario` VARCHAR(20), IN `p_necesidad_principal` VARCHAR(30), IN `p_observaciones` TEXT, IN `p_id_usuario` INT)   BEGIN
-    INSERT INTO beneficiario (nombres, apellidos, dni, fecha_nacimiento, telefono,
-                              direccion, distrito, tipo_beneficiario,
-                              necesidad_principal, observaciones, id_usuario)
-    VALUES (p_nombres, p_apellidos, p_dni, p_fecha_nacimiento, p_telefono,
-            p_direccion, p_distrito, p_tipo_beneficiario,
-            p_necesidad_principal, p_observaciones, p_id_usuario);
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_beneficiario_adaptado` (IN `p_nombres` VARCHAR(100), IN `p_apellidos` VARCHAR(100), IN `p_dni` VARCHAR(20), IN `p_fecha_nacimiento` DATE, IN `p_telefono` VARCHAR(20), IN `p_direccion` VARCHAR(255), IN `p_distrito` VARCHAR(100), IN `p_tipo_beneficiario` VARCHAR(100), IN `p_necesidad_principal` VARCHAR(100), IN `p_observaciones` TEXT, IN `p_id_usuario` INT)   BEGIN
-  INSERT INTO beneficiario (
-    nombre,
-    descripcion,
-    estado,
-    id_tipo_beneficiario
-  ) VALUES (
-    CONCAT(TRIM(p_nombres), ' ', TRIM(p_apellidos)),
-    COALESCE(NULLIF(p_observaciones, ''), p_necesidad_principal),
-    'activo',
-    NULL
-  );
-  SELECT LAST_INSERT_ID() AS id_beneficiario;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_beneficiario_nuevo` (IN `p_organizacion` VARCHAR(255), IN `p_direccion` VARCHAR(255), IN `p_distrito` VARCHAR(100), IN `p_necesidad_principal` VARCHAR(100), IN `p_observaciones` TEXT, IN `p_nombre_responsable` VARCHAR(100), IN `p_apellidos_responsable` VARCHAR(100), IN `p_dni` VARCHAR(20), IN `p_telefono` VARCHAR(20), IN `p_id_usuario` INT)   BEGIN
+    INSERT INTO beneficiario (
+        organizacion, direccion, distrito, necesidad_principal, observaciones,
+        nombre_responsable, apellidos_responsable, dni, telefono, estado, id_usuario
+    ) VALUES (
+        p_organizacion, p_direccion, p_distrito, p_necesidad_principal, p_observaciones,
+        p_nombre_responsable, p_apellidos_responsable, p_dni, p_telefono, 'ACTIVO', p_id_usuario
+    );
+    SELECT LAST_INSERT_ID() AS id_beneficiario;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_certificado` (IN `p_codigo_certificado` VARCHAR(50), IN `p_id_voluntario` INT, IN `p_id_actividad` INT, IN `p_horas_voluntariado` INT, IN `p_observaciones` TEXT, IN `p_id_usuario_emite` INT)   BEGIN
@@ -581,10 +572,27 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_notificacion` (IN `p_id_us
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_usuario` (IN `p_nombres` VARCHAR(100), IN `p_apellidos` VARCHAR(100), IN `p_correo` VARCHAR(100), IN `p_username` VARCHAR(60), IN `p_dni` VARCHAR(20), IN `p_password_hash` VARCHAR(255))   BEGIN
-    INSERT INTO usuario (nombres, apellidos, correo, username, dni, password_hash, estado, creado_en)
-    VALUES (p_nombres, p_apellidos, p_correo, p_username, p_dni, p_password_hash, 'ACTIVO', NOW());
-    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        -- Manejo de errores: rollback en caso de fallo
+        ROLLBACK;
+    END;
+
+    START TRANSACTION;
+
+    -- Validar si el usuario ya existe por username, correo o DNI
+    IF EXISTS (SELECT 1 FROM usuario WHERE username = p_username OR correo = p_correo OR dni = p_dni) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El usuario, correo o DNI ya existe';
+    ELSE
+        -- Insertar el nuevo usuario
+        INSERT INTO usuario (nombres, apellidos, correo, username, dni, password_hash, estado, creado_en)
+        VALUES (p_nombres, p_apellidos, p_correo, p_username, p_dni, p_password_hash, 'ACTIVO', NOW());
+    END IF;
+
+    -- Devolver el ID del usuario insertado
     SELECT LAST_INSERT_ID() AS id_usuario;
+
+    COMMIT;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_crear_voluntario` (IN `p_nombres` VARCHAR(100), IN `p_apellidos` VARCHAR(100), IN `p_dni` VARCHAR(20), IN `p_correo` VARCHAR(100), IN `p_telefono` VARCHAR(20), IN `p_carrera` VARCHAR(100), IN `p_id_usuario` INT, IN `p_cargo` VARCHAR(50), IN `p_acceso_sistema` TINYINT)   BEGIN
@@ -677,6 +685,10 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_asistencia` (IN `p_id_a
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_beneficiario` (IN `p_id_beneficiario` INT)   BEGIN
+    DELETE FROM beneficiario WHERE id_beneficiario = p_id_beneficiario;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_beneficiario_nuevo` (IN `p_id_beneficiario` INT)   BEGIN
     DELETE FROM beneficiario WHERE id_beneficiario = p_id_beneficiario;
 END$$
 
@@ -973,7 +985,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_listar_donaciones_con_detalle` (
         dnt.dni AS dniDonante,
         dnt.ruc AS rucDonante,
         dnt.correo AS correoDonante,
-        dnt.telefono AS telefonoDonante
+        dnt.telefono AS telefonoDonante,
+        d.subtipo_donacion AS subtipoDonacion
     FROM donacion d
     LEFT JOIN tipo_donacion td ON d.id_tipo_donacion = td.id_tipo_donacion
     LEFT JOIN actividades a ON d.id_actividad = a.id_actividad
@@ -982,7 +995,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_listar_donaciones_con_detalle` (
     LEFT JOIN donante dnt ON ddon.id_donante = dnt.id_donante
     LEFT JOIN donacion_detalle ddet ON d.id_donacion = ddet.id_donacion
     LEFT JOIN inventario_item ii ON ddet.id_item = ii.id_item
-    WHERE COALESCE(d.estado, 'PENDIENTE') NOT IN ('ANULADO')
     ORDER BY d.registrado_en DESC;
 END$$
 
@@ -1084,17 +1096,17 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_listar_salidas_inventario` ()   
         si.motivo,
         COALESCE(si.observacion, '') AS observacion,
         si.id_usuario_registro,
-        CONCAT(u.nombre, ' ', u.apellido) AS usuario_registro,
+        CONCAT(u.nombres, ' ', u.apellidos) AS usuario_registro,
         DATE_FORMAT(si.registrado_en, '%d/%m/%Y %H:%i') AS registrado_en,
         si.estado,
-        CASE WHEN si.anulado_en IS NOT NULL 
-             THEN DATE_FORMAT(si.anulado_en, '%d/%m/%Y %H:%i') 
+        CASE WHEN si.anulado_en IS NOT NULL
+             THEN DATE_FORMAT(si.anulado_en, '%d/%m/%Y %H:%i')
              ELSE NULL END AS anulado_en,
         si.motivo_anulacion,
         COALESCE(det.total_items, 0) AS total_items,
         COALESCE(det.total_cantidad, 0) AS total_cantidad
     FROM salida_inventario si
-    LEFT JOIN actividad a ON si.id_actividad = a.id_actividad
+    LEFT JOIN actividades a ON si.id_actividad = a.id_actividad
     LEFT JOIN usuario u ON si.id_usuario_registro = u.id_usuario
     LEFT JOIN (
         SELECT id_salida_inv,
@@ -1151,8 +1163,7 @@ END$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_actividad_por_id` (IN `p_id` INT)   BEGIN
     SELECT a.id_actividad, a.nombre, a.descripcion, a.fecha_inicio, a.fecha_fin,
            a.ubicacion, a.cupo_maximo,
-           (SELECT COUNT(*) FROM participacion p
-            WHERE p.id_actividad = a.id_actividad) AS inscritos,
+           (SELECT COUNT(*) FROM participacion p WHERE p.id_actividad = a.id_actividad) AS inscritos,
            a.estado, a.id_usuario, a.creado_en
     FROM actividades a
     WHERE a.id_actividad = p_id;
@@ -1183,6 +1194,10 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_asistencia_por_id` (IN `
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_beneficiario_por_id` (IN `p_id_beneficiario` INT)   BEGIN
+    SELECT * FROM beneficiario WHERE id_beneficiario = p_id_beneficiario;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_beneficiario_por_id_nuevo` (IN `p_id_beneficiario` INT)   BEGIN
     SELECT * FROM beneficiario WHERE id_beneficiario = p_id_beneficiario;
 END$$
 
@@ -1252,7 +1267,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_donacion_detalle` (IN `p
         dnt.dni AS dniDonante,
         dnt.ruc AS rucDonante,
         dnt.correo AS correoDonante,
-        dnt.telefono AS telefonoDonante
+        dnt.telefono AS telefonoDonante,
+        d.subtipo_donacion AS subtipoDonacion
     FROM donacion d
     LEFT JOIN tipo_donacion td ON d.id_tipo_donacion = td.id_tipo_donacion
     LEFT JOIN actividades a ON d.id_actividad = a.id_actividad
@@ -1356,15 +1372,15 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_salida_inventario` (IN `
         si.motivo,
         COALESCE(si.observacion, '') AS observacion,
         si.id_usuario_registro,
-        CONCAT(u.nombre, ' ', u.apellido) AS usuario_registro,
+        CONCAT(u.nombres, ' ', u.apellidos) AS usuario_registro,
         DATE_FORMAT(si.registrado_en, '%d/%m/%Y %H:%i') AS registrado_en,
         si.estado,
-        CASE WHEN si.anulado_en IS NOT NULL 
-             THEN DATE_FORMAT(si.anulado_en, '%d/%m/%Y %H:%i') 
+        CASE WHEN si.anulado_en IS NOT NULL
+             THEN DATE_FORMAT(si.anulado_en, '%d/%m/%Y %H:%i')
              ELSE NULL END AS anulado_en,
         si.motivo_anulacion
     FROM salida_inventario si
-    LEFT JOIN actividad a ON si.id_actividad = a.id_actividad
+    LEFT JOIN actividades a ON si.id_actividad = a.id_actividad
     LEFT JOIN usuario u ON si.id_usuario_registro = u.id_usuario
     WHERE si.id_salida_inv = p_id;
 END$$
@@ -1389,14 +1405,17 @@ END$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_todas_actividades` ()   BEGIN
     SELECT a.id_actividad, a.nombre, a.descripcion, a.fecha_inicio, a.fecha_fin,
            a.ubicacion, a.cupo_maximo,
-           (SELECT COUNT(*) FROM participacion p
-            WHERE p.id_actividad = a.id_actividad) AS inscritos,
+           (SELECT COUNT(*) FROM participacion p WHERE p.id_actividad = a.id_actividad) AS inscritos,
            a.estado, a.id_usuario, a.creado_en
     FROM actividades a
     ORDER BY a.creado_en DESC;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_todos_beneficiarios` ()   BEGIN
+    SELECT * FROM beneficiario ORDER BY creado_en DESC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_todos_beneficiarios_nuevo` ()   BEGIN
     SELECT * FROM beneficiario ORDER BY creado_en DESC;
 END$$
 
@@ -1486,13 +1505,10 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_asistencia` (IN `p_id_
     SELECT LAST_INSERT_ID() AS id_asistencia;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_donacion_inventario` (IN `p_cantidad` DECIMAL(10,2), IN `p_descripcion` VARCHAR(150), IN `p_id_tipo_donacion` INT, IN `p_id_actividad` INT, IN `p_id_usuario_registro` INT, IN `p_id_item` INT, IN `p_crear_nuevo_item` TINYINT, IN `p_item_nombre` VARCHAR(150), IN `p_item_categoria` VARCHAR(50), IN `p_item_unidad_medida` VARCHAR(30), IN `p_item_stock_minimo` DECIMAL(10,2), IN `p_donacion_anonima` TINYINT, IN `p_donante_tipo` VARCHAR(20), IN `p_donante_nombre` VARCHAR(150), IN `p_donante_correo` VARCHAR(100), IN `p_donante_telefono` VARCHAR(30), IN `p_donante_dni` VARCHAR(20), IN `p_donante_ruc` VARCHAR(20))   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_donacion_inventario` (IN `p_cantidad` DECIMAL(10,2), IN `p_descripcion` VARCHAR(150), IN `p_id_tipo_donacion` INT, IN `p_subtipo_donacion` VARCHAR(50), IN `p_id_actividad` INT, IN `p_id_usuario_registro` INT, IN `p_id_item` INT, IN `p_crear_nuevo_item` TINYINT, IN `p_item_nombre` VARCHAR(150), IN `p_item_categoria` VARCHAR(50), IN `p_item_unidad_medida` VARCHAR(30), IN `p_item_stock_minimo` DECIMAL(10,2), IN `p_donacion_anonima` TINYINT, IN `p_donante_tipo` VARCHAR(20), IN `p_donante_nombre` VARCHAR(150), IN `p_donante_correo` VARCHAR(100), IN `p_donante_telefono` VARCHAR(30), IN `p_donante_dni` VARCHAR(20), IN `p_donante_ruc` VARCHAR(20))   BEGIN
     DECLARE v_id_donacion INT;
-    DECLARE v_id_item INT DEFAULT NULL;
     DECLARE v_id_donante INT DEFAULT NULL;
     DECLARE v_tipo_donante VARCHAR(20) DEFAULT NULL;
-    DECLARE v_stock_anterior DECIMAL(10,2) DEFAULT 0;
-    DECLARE v_stock_nuevo DECIMAL(10,2) DEFAULT 0;
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -1506,9 +1522,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_donacion_inventario` (
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La cantidad/monto de donacion debe ser mayor a cero.';
     END IF;
 
-    INSERT INTO donacion(cantidad, descripcion, id_tipo_donacion, id_actividad, id_usuario_registro, registrado_en, estado)
-    VALUES(p_cantidad, p_descripcion, p_id_tipo_donacion, p_id_actividad, p_id_usuario_registro, NOW(), 'PENDIENTE');
-
+    INSERT INTO donacion(cantidad, descripcion, id_tipo_donacion, subtipo_donacion, id_actividad, id_usuario_registro, registrado_en, estado)
+    VALUES(p_cantidad, p_descripcion, p_id_tipo_donacion, NULLIF(TRIM(p_subtipo_donacion),''), p_id_actividad, p_id_usuario_registro, NOW(), 'PENDIENTE');
     SET v_id_donacion = LAST_INSERT_ID();
 
     IF IFNULL(p_donacion_anonima, 0) = 0 THEN
@@ -1538,14 +1553,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_donacion_inventario` (
         INSERT INTO donacion_donante(id_donacion, id_donante) VALUES(v_id_donacion, v_id_donante);
     END IF;
 
-    
-    IF p_id_tipo_donacion = 2 THEN
-        SET @dummy = 1;
-    END IF;
-
     COMMIT;
-
-    
     SELECT v_id_donacion AS id_donacion;
 END$$
 
@@ -1720,23 +1728,6 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `actividad`
---
-
-CREATE TABLE `actividad` (
-  `id_actividad` int(11) NOT NULL,
-  `nombre_actividad` varchar(150) DEFAULT NULL,
-  `descripcion` varchar(200) DEFAULT NULL,
-  `fecha` date DEFAULT NULL,
-  `estado` varchar(30) DEFAULT NULL,
-  `id_beneficiario` int(11) DEFAULT NULL,
-  `id_usuario_creador` int(11) DEFAULT NULL,
-  `creado_en` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Estructura de tabla para la tabla `actividades`
 --
 
@@ -1754,18 +1745,18 @@ CREATE TABLE `actividades` (
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Volcado de datos para la tabla `actividades`
+-- Estructura de tabla para la tabla `actividad_beneficiario`
 --
 
-INSERT INTO `actividades` (`id_actividad`, `nombre`, `descripcion`, `fecha_inicio`, `fecha_fin`, `ubicacion`, `cupo_maximo`, `inscritos`, `estado`, `id_usuario`, `creado_en`) VALUES
-(11, 'campaña de donacion de sangre', 'campaña de donacion de sangre', '2026-02-11', '2026-02-12', 'uss', 50, 0, 'ACTIVO', 21, '2026-02-11 21:07:39'),
-(12, 'Campaña de Reforestacion en Pimentel', 'Jornada de plantacion de Arboles nativos en las zonas costeras de Pimentel para combatir la desertificacion y promover la conciencia ambiental en la comunidad.', '2025-07-15', '2025-07-15', 'Playa Pimentel, Chiclayo, Lambayeque', 2, 2, 'ACTIVO', NULL, '2026-02-23 15:53:10'),
-(13, 'Donacion de utiles Escolares - Josu Leonardo Ortiz', 'Recoleccion y entrega de Utiles escolares a niños de bajos recursos del distrito Josu Leonardo Ortiz, en coordinacion con instituciones educativas locales.', '2025-07-20', '2025-07-20', 'I.E. Karl Weiss, Josu Leonardo Ortiz, Chiclayo', 30, 2, 'ACTIVO', NULL, '2026-02-23 15:53:10'),
-(14, 'Operativo Medico Gratuito en La Victoria', 'Atencion medica gratuita (medicina general, odontologia, oftalmologia) para familias vulnerables del distrito La Victoria de Chiclayo.', '2025-08-02', '2025-08-02', 'Centro Comunal La Victoria, Chiclayo, Lambayeque', 50, 0, 'ACTIVO', NULL, '2026-02-23 15:53:10'),
-(15, 'Limpieza del Dren 4000 - Chiclayo', 'Jornada de limpieza y concientizacion ambiental en las riberas del Dren 4000, uno de los principales canales de drenaje de la ciudad de Chiclayo.', '2025-08-10', '2025-08-10', 'Dren 4000, Av. Chinchaysuyo, Chiclayo', 35, 0, 'ACTIVO', NULL, '2026-02-23 15:53:10'),
-(16, 'Taller de Capacitacion Digital para Adultos Mayores', 'Taller de alfabetizacion digital para adultos mayores, enseñando uso de celulares, redes sociales y tramites en linea, en el centro del adulto mayor de Chiclayo.', '2025-08-16', '2025-08-16', 'Centro del Adulto Mayor - EsSalud, Chiclayo, Lambayeque', 25, 0, 'ACTIVO', NULL, '2026-02-23 15:53:10'),
-(18, 'hh', 'hhh', '2026-02-24', '2026-02-26', 'hh', 10, 0, 'ACTIVO', 21, '2026-02-24 14:06:56');
+CREATE TABLE `actividad_beneficiario` (
+  `id_actividad_beneficiario` int(11) NOT NULL,
+  `id_actividad` int(11) DEFAULT NULL,
+  `id_beneficiario` int(11) DEFAULT NULL,
+  `observacion` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -1816,16 +1807,6 @@ CREATE TABLE `asistencias` (
   `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `asistencias`
---
-
-INSERT INTO `asistencias` (`id_asistencia`, `id_voluntario`, `id_actividad`, `fecha`, `hora_entrada`, `hora_salida`, `horas_totales`, `estado`, `observaciones`, `id_usuario_registro`, `creado_en`, `actualizado_en`) VALUES
-(6, 24, 12, '2025-07-15', '07:00:00', '13:00:00', 6.00, 'ASISTIO', NULL, 21, '2026-02-24 06:15:25', '2026-02-24 06:15:25'),
-(7, 25, 12, '2025-07-15', '07:00:00', '11:00:00', 4.00, 'ASISTIO', NULL, 21, '2026-02-24 06:39:09', '2026-02-24 06:39:09'),
-(8, 26, 13, '2025-07-20', '07:00:00', '12:00:00', 5.00, 'ASISTIO', NULL, 21, '2026-02-24 13:37:05', '2026-02-24 13:37:05'),
-(9, 25, 13, '2025-07-20', '07:00:00', '11:00:00', 4.00, 'ASISTIO', NULL, 21, '2026-02-24 15:28:04', '2026-02-24 15:28:04');
-
 -- --------------------------------------------------------
 
 --
@@ -1834,67 +1815,19 @@ INSERT INTO `asistencias` (`id_asistencia`, `id_voluntario`, `id_actividad`, `fe
 
 CREATE TABLE `beneficiario` (
   `id_beneficiario` int(11) NOT NULL,
-  `nombre` varchar(150) DEFAULT NULL,
-  `descripcion` varchar(200) DEFAULT NULL,
   `estado` varchar(30) DEFAULT 'activo',
-  `id_tipo_beneficiario` int(11) DEFAULT NULL,
-  `nombres` varchar(100) DEFAULT NULL,
-  `apellidos` varchar(100) DEFAULT NULL,
-  `dni` varchar(20) DEFAULT NULL,
-  `fecha_nacimiento` date DEFAULT NULL,
-  `telefono` varchar(20) DEFAULT NULL,
+  `organizacion` varchar(150) DEFAULT NULL,
   `direccion` varchar(255) DEFAULT NULL,
   `distrito` varchar(100) DEFAULT NULL,
-  `tipo_beneficiario` varchar(100) DEFAULT NULL,
   `necesidad_principal` varchar(100) DEFAULT NULL,
   `observaciones` text DEFAULT NULL,
+  `nombre_responsable` varchar(100) DEFAULT NULL,
+  `apellidos_responsable` varchar(100) DEFAULT NULL,
+  `dni` varchar(20) DEFAULT NULL,
+  `telefono` varchar(20) DEFAULT NULL,
   `id_usuario` int(11) DEFAULT NULL,
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `beneficiario`
---
-
-INSERT INTO `beneficiario` (`id_beneficiario`, `nombre`, `descripcion`, `estado`, `id_tipo_beneficiario`, `nombres`, `apellidos`, `dni`, `fecha_nacimiento`, `telefono`, `direccion`, `distrito`, `tipo_beneficiario`, `necesidad_principal`, `observaciones`, `id_usuario`, `creado_en`) VALUES
-(3, NULL, NULL, 'ACTIVO', NULL, 'María Elena', 'Sánchez Torres', '43512678', '1985-03-12', '974123456', 'Av. Balta 456, Chiclayo', 'CHICLAYO', 'INDIVIDUAL', 'SALUD', 'Madre soltera con 3 hijos, requiere apoyo médico.', 1, '2026-02-18 04:53:09'),
-(4, NULL, NULL, 'ACTIVO', NULL, 'Carlos Jesús', 'Burga Díaz', '51234987', '1972-07-25', '961234789', 'Jr. Elías Aguirre 234, La Victoria', 'LA VICTORIA', 'FAMILIA', 'ALIMENTACIÓN', 'Familia de 5 personas con bajos recursos, sin trabajo estable.', 1, '2026-02-18 04:53:09'),
-(5, NULL, NULL, 'ACTIVO', NULL, 'Rosa Amalia', 'Chafloque Llanos', '47896321', '1990-11-08', '943876541', 'Calle Los Álamos 89, José L. Ortiz', 'J. L. ORTIZ', 'INDIVIDUAL', 'EDUCACIÓN', 'Joven con discapacidad visual, busca apoyo para continuar estudios.', 1, '2026-02-18 04:53:09'),
-(6, NULL, NULL, 'ACTIVO', NULL, 'Pedro Antonio', 'Puyen Montenegro', '38741256', '1960-05-30', '987654310', 'Av. Grau 712, Chiclayo', 'CHICLAYO', 'COMUNIDAD', 'VIVIENDA', 'Adulto mayor sin vivienda propia, vive en situación de precariedad.', 1, '2026-02-18 04:53:09'),
-(7, NULL, NULL, 'ACTIVO', NULL, 'Lucía del Pilar', 'Llontop Vera', '55231478', '2000-02-14', '956321470', 'Mz. D Lt. 8 AA.HH. Túpac Amaru', 'POMALCA', 'FAMILIA', 'OTRO', 'Joven universitaria con familia numerosa, requiere apoyo multisectorial.', 1, '2026-02-18 04:53:09');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `beneficiario_old`
---
-
-CREATE TABLE `beneficiario_old` (
-  `id_beneficiario` int(11) NOT NULL,
-  `nombre` varchar(150) DEFAULT NULL,
-  `descripcion` varchar(200) DEFAULT NULL,
-  `estado` varchar(30) DEFAULT NULL,
-  `id_tipo_beneficiario` int(11) DEFAULT NULL,
-  `nombres` varchar(100) DEFAULT NULL,
-  `apellidos` varchar(100) DEFAULT NULL,
-  `dni` varchar(20) DEFAULT NULL,
-  `fecha_nacimiento` date DEFAULT NULL,
-  `telefono` varchar(20) DEFAULT NULL,
-  `direccion` varchar(255) DEFAULT NULL,
-  `distrito` varchar(100) DEFAULT NULL,
-  `tipo_beneficiario` varchar(100) DEFAULT NULL,
-  `necesidad_principal` varchar(100) DEFAULT NULL,
-  `observaciones` text DEFAULT NULL,
-  `id_usuario` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `beneficiario_old`
---
-
-INSERT INTO `beneficiario_old` (`id_beneficiario`, `nombre`, `descripcion`, `estado`, `id_tipo_beneficiario`, `nombres`, `apellidos`, `dni`, `fecha_nacimiento`, `telefono`, `direccion`, `distrito`, `tipo_beneficiario`, `necesidad_principal`, `observaciones`, `id_usuario`) VALUES
-(1, 'Juan Pérez', 'Beneficiario de prueba en Chiclayo', 'activo', NULL, 'Juan', 'Pérez', NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Beneficiario de prueba en Chiclayo', NULL),
-(2, NULL, NULL, 'activo', NULL, 'Prueba', 'Usuario', '87654321', '1980-01-01', '999888777', 'Calle Falsa 123', 'Chiclayo', 'Adulto mayor', 'Alimentos', 'Registro de prueba', 1);
 
 -- --------------------------------------------------------
 
@@ -1945,14 +1878,6 @@ CREATE TABLE `certificados` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `certificados`
---
-
-INSERT INTO `certificados` (`id_certificado`, `codigo_certificado`, `id_voluntario`, `id_actividad`, `horas_voluntariado`, `fecha_emision`, `estado`, `observaciones`, `id_usuario_emite`, `fecha_anulacion`, `motivo_anulacion`, `created_at`, `updated_at`) VALUES
-(4, 'CERT-2026-0001', 24, 12, 6, '2026-02-24', 'EMITIDO', '', 21, NULL, NULL, '2026-02-24 06:37:33', '2026-02-24 06:37:33'),
-(5, 'CERT-2026-0002', 26, 13, 5, '2026-02-24', 'EMITIDO', '', 21, NULL, NULL, '2026-02-24 13:37:51', '2026-02-24 13:37:51');
-
 -- --------------------------------------------------------
 
 --
@@ -1964,6 +1889,7 @@ CREATE TABLE `donacion` (
   `cantidad` decimal(10,2) DEFAULT NULL,
   `descripcion` varchar(150) DEFAULT NULL,
   `id_tipo_donacion` int(11) DEFAULT NULL,
+  `subtipo_donacion` varchar(50) DEFAULT NULL,
   `id_actividad` int(11) DEFAULT NULL,
   `id_usuario_registro` int(11) DEFAULT NULL,
   `registrado_en` datetime DEFAULT NULL,
@@ -1973,21 +1899,6 @@ CREATE TABLE `donacion` (
   `motivo_anulacion` varchar(255) DEFAULT NULL,
   `actualizado_en` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `donacion`
---
-
-INSERT INTO `donacion` (`id_donacion`, `cantidad`, `descripcion`, `id_tipo_donacion`, `id_actividad`, `id_usuario_registro`, `registrado_en`, `estado`, `anulado_en`, `id_usuario_anula`, `motivo_anulacion`, `actualizado_en`) VALUES
-(2, 2.00, 'arroz', 2, NULL, 21, '2026-02-14 23:21:01', 'CONFIRMADO', NULL, NULL, NULL, '2026-02-14 23:22:06'),
-(3, 8.00, 'donaciones', 2, NULL, 21, '2026-02-14 23:25:30', 'ANULADO', NULL, NULL, NULL, NULL),
-(4, 3000.00, 'donaciones', 1, 11, 21, '2026-02-14 23:38:45', 'CONFIRMADO', NULL, NULL, NULL, NULL),
-(5, 2500.00, 'donacion', 1, 11, 21, '2026-02-15 00:47:10', 'CONFIRMADO', NULL, NULL, NULL, NULL),
-(6, 300.00, 'donacion', 1, NULL, 21, '2026-02-15 02:37:34', 'CONFIRMADO', NULL, NULL, NULL, NULL),
-(7, 500.00, 'donacion', 1, NULL, 21, '2026-02-15 03:03:42', 'CONFIRMADO', NULL, NULL, NULL, NULL),
-(8, 900.00, 'donaciones', 1, 11, 21, '2026-02-16 08:13:37', 'CONFIRMADO', NULL, NULL, NULL, NULL),
-(9, 6.00, 'ggggg', 2, 11, 21, '2026-02-16 08:18:13', 'CONFIRMADO', NULL, NULL, NULL, NULL),
-(38, 4555.00, 'dine', 1, 15, 21, '2026-02-25 16:44:03', 'CONFIRMADO', NULL, NULL, NULL, '2026-02-25 16:55:48');
 
 -- --------------------------------------------------------
 
@@ -2004,14 +1915,6 @@ CREATE TABLE `donacion_detalle` (
   `creado_en` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `donacion_detalle`
---
-
-INSERT INTO `donacion_detalle` (`id_donacion_detalle`, `id_donacion`, `id_item`, `cantidad`, `observacion`, `creado_en`) VALUES
-(1, 2, 1, 2.00, 'arroz', '2026-02-14 23:21:01'),
-(2, 3, 1, 8.00, 'donaciones', '2026-02-14 23:25:30');
-
 -- --------------------------------------------------------
 
 --
@@ -2023,20 +1926,6 @@ CREATE TABLE `donacion_donante` (
   `id_donacion` int(11) DEFAULT NULL,
   `id_donante` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `donacion_donante`
---
-
-INSERT INTO `donacion_donante` (`id_donacion_donante`, `id_donacion`, `id_donante`) VALUES
-(3, 2, 1),
-(4, 3, 2),
-(5, 4, 3),
-(6, 5, 4),
-(7, 6, 5),
-(8, 7, 6),
-(9, 8, 7),
-(10, 9, 8);
 
 -- --------------------------------------------------------
 
@@ -2085,13 +1974,6 @@ CREATE TABLE `eventos_calendario` (
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `eventos_calendario`
---
-
-INSERT INTO `eventos_calendario` (`id_evento`, `titulo`, `descripcion`, `fecha_inicio`, `fecha_fin`, `color`, `id_usuario`, `creado_en`) VALUES
-(1, 'cumpleños', 'de luis', '2026-02-12', '2026-02-12', '#eab308', 21, '2026-02-12 03:21:53');
-
 -- --------------------------------------------------------
 
 --
@@ -2139,15 +2021,6 @@ CREATE TABLE `inventario_movimiento` (
   `creado_en` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `inventario_movimiento`
---
-
-INSERT INTO `inventario_movimiento` (`id_movimiento`, `id_item`, `tipo_movimiento`, `motivo`, `cantidad`, `stock_anterior`, `stock_nuevo`, `id_referencia`, `tabla_referencia`, `observacion`, `id_usuario`, `creado_en`) VALUES
-(1, 1, 'ENTRADA', 'DONACION', 2.00, 0.00, 2.00, 2, 'donacion', 'arroz', 21, '2026-02-14 23:21:01'),
-(2, 1, 'ENTRADA', 'DONACION', 8.00, 2.00, 10.00, 3, 'donacion', 'donaciones', 21, '2026-02-14 23:25:30'),
-(3, 1, 'ENTRADA', 'CONSUMO', 1.00, 10.00, 11.00, NULL, NULL, '', 21, '2026-02-15 02:18:48');
-
 -- --------------------------------------------------------
 
 --
@@ -2161,6 +2034,15 @@ CREATE TABLE `lugar` (
   `distrito` varchar(100) DEFAULT NULL,
   `direccion_referencia` varchar(150) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `lugar`
+--
+
+INSERT INTO `lugar` (`id_lugar`, `departamento`, `provincia`, `distrito`, `direccion_referencia`) VALUES
+(1, 'Lambayeque', 'Chiclayo', 'Pimentel', 'Playa de Pimentel - Zona de dunas costeras norte'),
+(2, 'Lambayeque', 'Chiclayo', 'Pimentel', 'Parque ecologico municipal de Pimentel'),
+(3, 'Lambayeque', 'Chiclayo', 'Pimentel', 'Ribera del rio Lambayeque - Sector Las Rocas');
 
 -- --------------------------------------------------------
 
@@ -2181,23 +2063,6 @@ CREATE TABLE `movimiento_financiero` (
   `creado_en` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `movimiento_financiero`
---
-
-INSERT INTO `movimiento_financiero` (`id_movimiento`, `tipo`, `monto`, `descripcion`, `categoria`, `comprobante`, `fecha_movimiento`, `id_actividad`, `id_usuario`, `creado_en`) VALUES
-(1, 'GASTO', 200.00, 'pasajes', 'Transporte', '002', '2026-02-12', 11, 21, '2026-02-12 09:58:55'),
-(2, 'INGRESO', 3000.00, 'Donación: donaciones (Donacion #4)', 'Donaciones', NULL, '2026-02-14', 11, 21, '2026-02-14 23:38:45'),
-(3, 'INGRESO', 2500.00, 'Donación: donacion (Donacion #5)', 'Donaciones', '20605005994', '2026-02-15', 11, 21, '2026-02-15 00:47:10'),
-(4, 'INGRESO', 300.00, 'Donación: donacion (Donacion #6)', 'Donaciones', 'BOLETA-6', '2026-02-15', NULL, 21, '2026-02-15 02:37:34'),
-(5, 'INGRESO', 500.00, 'Donación: donacion (Donacion #7)', 'Donaciones', 'BOLETA-7', '2026-02-15', NULL, 21, '2026-02-15 03:03:52'),
-(6, 'INGRESO', 900.00, 'Donación: donaciones (Donacion #8)', 'Donaciones', 'BOLETA-8', '2026-02-16', 11, 21, '2026-02-16 08:14:21'),
-(7, 'GASTO', 2500.00, 'gastos', 'Materiales', '002', '2026-02-17', 11, 21, '2026-02-17 11:04:03'),
-(8, 'GASTO', 500.00, 'hh', 'Donaciones', '001', '2026-02-24', 14, 21, NULL),
-(9, 'GASTO', 500.00, 'hh', 'Donaciones', '001', '2026-02-24', 14, 21, NULL),
-(10, 'INGRESO', 500.00, 'hh', 'Donaciones', '001', '2026-02-24', 14, 21, NULL),
-(11, 'GASTO', 800.00, 'gg', 'Materiales', '002', '2026-02-24', 15, 21, '2026-02-24 09:19:26');
-
 -- --------------------------------------------------------
 
 --
@@ -2216,17 +2081,6 @@ CREATE TABLE `notificaciones` (
   `referencia_id` int(11) DEFAULT NULL COMMENT 'ID de actividad, evento, etc.',
   `fecha_creacion` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `notificaciones`
---
-
-INSERT INTO `notificaciones` (`id_notificacion`, `id_usuario`, `tipo`, `titulo`, `mensaje`, `icono`, `color`, `leida`, `referencia_id`, `fecha_creacion`) VALUES
-(3, 21, 'ACTIVIDAD_HOY', '📋 Actividad hoy: campaña de donacion de sangre', 'La actividad \"campaña de donacion de sangre\" está programada para hoy en uss.', 'fa-calendar-check', '#10b981', 1, 11, '2026-02-11 16:07:46'),
-(5, 21, 'ACTIVIDAD_HOY', 'Actividad hoy: Taller de Primeros Auxilios', 'La actividad \"Taller de Primeros Auxilios\" está programada para hoy en Centro Comunitario San Martín.', 'fa-calendar-check', '#10b981', 1, 2, '2026-02-20 01:53:35'),
-(6, 21, 'ACTIVIDAD_HOY', 'Actividad hoy: Taller de Primeros Auxilios', 'La actividad \"Taller de Primeros Auxilios\" está programada para hoy en Centro Comunitario San Martín.', 'fa-calendar-check', '#10b981', 1, 7, '2026-02-20 01:53:35'),
-(7, 21, 'ACTIVIDAD_HOY', '📋 Actividad hoy: hola', 'La actividad \"hola\" está programada para hoy en jjj.', 'fa-calendar-check', '#10b981', 0, 17, '2026-02-24 09:01:47'),
-(8, 21, 'ACTIVIDAD_HOY', '📋 Actividad hoy: hh', 'La actividad \"hh\" está programada para hoy en hh.', 'fa-calendar-check', '#10b981', 0, 18, '2026-02-24 09:17:33');
 
 -- --------------------------------------------------------
 
@@ -2274,23 +2128,6 @@ INSERT INTO `permiso` (`id_permiso`, `nombre_permiso`, `descripcion`) VALUES
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `programacion_donacion`
---
-
-CREATE TABLE `programacion_donacion` (
-  `id_programacion` int(11) NOT NULL,
-  `fecha_programada` date DEFAULT NULL,
-  `estado` varchar(30) DEFAULT NULL,
-  `id_donacion` int(11) DEFAULT NULL,
-  `id_voluntario` int(11) DEFAULT NULL,
-  `id_usuario_registro` int(11) DEFAULT NULL,
-  `id_beneficiario` int(11) DEFAULT NULL,
-  `id_lugar` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Estructura de tabla para la tabla `recurso`
 --
 
@@ -2302,21 +2139,29 @@ CREATE TABLE `recurso` (
   `descripcion` varchar(150) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- --------------------------------------------------------
-
 --
--- Estructura de tabla para la tabla `responsable_beneficiario`
+-- Volcado de datos para la tabla `recurso`
 --
 
-CREATE TABLE `responsable_beneficiario` (
-  `id_responsable` int(11) NOT NULL,
-  `nombres` varchar(100) DEFAULT NULL,
-  `apellidos` varchar(100) DEFAULT NULL,
-  `cargo` varchar(100) DEFAULT NULL,
-  `telefono` varchar(20) DEFAULT NULL,
-  `correo` varchar(100) DEFAULT NULL,
-  `id_beneficiario` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+INSERT INTO `recurso` (`id_recurso`, `nombre`, `unidad_medida`, `tipo_recurso`, `descripcion`) VALUES
+(1, 'Plantones de Algarrobo', 'unidad', 'MATERIAL', 'Plantones de algarrobo para reforestar'),
+(2, 'Plantones de Hualtaco', 'unidad', 'MATERIAL', 'Plantones de hualtaco nativo'),
+(3, 'Palas de jardineria', 'unidad', 'EQUIPO', 'Palas para cavar hoyos de siembra'),
+(4, 'Agua para riego', 'litro', 'MATERIAL', 'Agua potable para riego inicial de plantones'),
+(5, 'Guantes de trabajo', 'par', 'EQUIPO', 'Guantes de proteccion para voluntarios'),
+(6, 'Abono organico', 'kg', 'MATERIAL', 'Abono organico para nutrir la tierra'),
+(7, 'Plantones de Algarrobo', 'unidad', 'MATERIAL', 'Plantones de algarrobo'),
+(8, 'Plantones de Algarrobo', 'unidad', 'MATERIAL', 'Plantones de algarrobo'),
+(9, 'Plantones de Hualtaco', 'unidad', 'MATERIAL', 'Arboles nativos'),
+(10, 'Palas de jardineria', 'unidad', 'EQUIPO', 'Palas para cavar'),
+(11, 'Agua para riego', 'litro', 'MATERIAL', 'Agua para riego inicial'),
+(12, 'Guantes de trabajo', 'par', 'EQUIPO', 'Guantes de proteccion'),
+(13, 'Abono organico', 'kg', 'MATERIAL', 'Abono para nutrir la tierra'),
+(14, 'Plantones de Hualtaco', 'unidad', 'MATERIAL', 'Arboles nativos'),
+(15, 'Palas de jardineria', 'unidad', 'EQUIPO', 'Palas para cavar'),
+(16, 'Agua para riego', 'litro', 'MATERIAL', 'Agua para riego inicial'),
+(17, 'Guantes de trabajo', 'par', 'EQUIPO', 'Guantes de proteccion'),
+(18, 'Abono organico', 'kg', 'MATERIAL', 'Abono para nutrir tierra');
 
 -- --------------------------------------------------------
 
@@ -2348,43 +2193,6 @@ INSERT INTO `rol_actividad` (`id_rol_actividad`, `nombre_rol`, `descripcion`) VA
 (11, 'Encargado de Logística', 'Gestiona recursos y logística de actividades'),
 (12, 'Coordinador de Proyecto', 'Coordina y supervisa proyectos completos'),
 (13, 'Administrador del Sistema', 'Acceso completo al sistema de voluntariado');
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `rol_permiso`
---
-
-CREATE TABLE `rol_permiso` (
-  `id_rol_permiso` int(11) NOT NULL,
-  `id_rol_sistema` int(11) DEFAULT NULL,
-  `id_permiso` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `rol_permiso`
---
-
-INSERT INTO `rol_permiso` (`id_rol_permiso`, `id_rol_sistema`, `id_permiso`) VALUES
-(1, 1, 1),
-(2, 1, 2),
-(3, 1, 3),
-(12, 1, 3),
-(14, 1, 4),
-(16, 1, 5),
-(18, 1, 6),
-(20, 1, 7),
-(22, 1, 8),
-(24, 1, 9),
-(26, 1, 10),
-(28, 1, 11),
-(30, 1, 12),
-(32, 1, 13),
-(34, 1, 14),
-(36, 1, 12),
-(37, 1, 12),
-(38, 1, 12),
-(39, 1, 12);
 
 -- --------------------------------------------------------
 
@@ -2432,14 +2240,6 @@ CREATE TABLE `salida_donacion` (
   `actualizado_en` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `salida_donacion`
---
-
-INSERT INTO `salida_donacion` (`id_salida`, `id_donacion`, `id_actividad`, `tipo_salida`, `cantidad`, `descripcion`, `id_item`, `cantidad_item`, `id_usuario_registro`, `registrado_en`, `estado`, `anulado_en`, `id_usuario_anula`, `motivo_anulacion`, `actualizado_en`) VALUES
-(1, 8, 12, 'DINERO', 500, '', NULL, NULL, 21, '2026-02-25 00:26:42', 'CONFIRMADO', NULL, NULL, NULL, '2026-02-25 00:27:04'),
-(2, 7, 15, 'DINERO', 500, '', NULL, NULL, 21, '2026-02-25 08:54:05', 'CONFIRMADO', NULL, NULL, NULL, '2026-02-25 08:54:11');
-
 -- --------------------------------------------------------
 
 --
@@ -2472,32 +2272,6 @@ CREATE TABLE `salida_inventario_detalle` (
   `stock_antes` decimal(10,2) NOT NULL DEFAULT 0.00,
   `stock_despues` decimal(10,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
-
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `tipo_beneficiario`
---
-
-CREATE TABLE `tipo_beneficiario` (
-  `id_tipo_beneficiario` int(11) NOT NULL,
-  `nombre` varchar(100) DEFAULT NULL,
-  `descripcion` varchar(150) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `tipo_beneficiario`
---
-
-INSERT INTO `tipo_beneficiario` (`id_tipo_beneficiario`, `nombre`, `descripcion`) VALUES
-(1, 'Orfanato', 'Centro de atención a menores sin familia'),
-(2, 'Asilo', 'Centro para personas adultas mayores'),
-(3, 'Comunidad Indígena', 'Comunidades originarias'),
-(4, 'Zona Rural', 'Área rural necesitada'),
-(5, 'Orfanato', 'Centro de atención a menores sin familia'),
-(6, 'Asilo', 'Centro para personas adultas mayores'),
-(7, 'Comunidad Indígena', 'Comunidades originarias'),
-(8, 'Zona Rural', 'Área rural necesitada');
 
 -- --------------------------------------------------------
 
@@ -2546,8 +2320,7 @@ CREATE TABLE `usuario` (
 --
 
 INSERT INTO `usuario` (`id_usuario`, `nombres`, `apellidos`, `correo`, `username`, `dni`, `password_hash`, `foto_perfil`, `estado`, `creado_en`, `actualizado_en`, `intentos_fallidos`, `bloqueado_hasta`) VALUES
-(21, 'luis', 'goerdy', 'tchi@gamil.com', 'geordy', NULL, '$2a$10$gF/BXO.egDt/oEeSSZMzMu7IE5VWf9BmvIateoBiud8OiUNSPqFie', 'img/perfil_21.webp', 'ACTIVO', '2026-02-04 01:41:12', '2026-02-12 00:26:32', 0, NULL),
-(28, 'ROSA FIORELLA', 'VICUÑA MUNAYCO', 'rosa@gmail.con', 'rosa', NULL, '$2a$10$ALUOyQo6GeWeys6g3KTNUOTUtIB07EkIJgkqzWwEn0T81nmpcVMJ6', NULL, 'ACTIVO', '2026-02-23 10:45:16', '2026-02-23 10:45:16', 0, NULL);
+(21, 'luis', 'goerdy', 'tchi@gamil.com', 'geordy', NULL, '$2a$10$gF/BXO.egDt/oEeSSZMzMu7IE5VWf9BmvIateoBiud8OiUNSPqFie', 'img/perfil_21.webp', 'ACTIVO', '2026-02-04 01:41:12', '2026-02-12 00:26:32', 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -2576,9 +2349,7 @@ INSERT INTO `usuario_permiso` (`id_usuario_permiso`, `id_usuario`, `id_permiso`)
 (77, 21, 8),
 (78, 21, 9),
 (79, 21, 10),
-(80, 21, 11),
-(57, 28, 6),
-(58, 28, 7);
+(80, 21, 11);
 
 -- --------------------------------------------------------
 
@@ -2592,14 +2363,6 @@ CREATE TABLE `usuario_rol` (
   `id_rol_sistema` int(11) DEFAULT NULL,
   `asignado_en` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `usuario_rol`
---
-
-INSERT INTO `usuario_rol` (`id_usuario_rol`, `id_usuario`, `id_rol_sistema`, `asignado_en`) VALUES
-(29, 21, 4, NULL),
-(31, 28, 3, '2026-02-23 10:45:16');
 
 -- --------------------------------------------------------
 
@@ -2623,27 +2386,8 @@ CREATE TABLE `voluntario` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Volcado de datos para la tabla `voluntario`
---
-
-INSERT INTO `voluntario` (`id_voluntario`, `nombres`, `apellidos`, `dni`, `correo`, `telefono`, `carrera`, `cargo`, `acceso_sistema`, `estado`, `id_usuario`, `id_rol_actividad`) VALUES
-(10, 'Luis', 'chinchay', '71852009', 'Geordy_31_71@hotmail.com', '967271494', 'sistemas', 'Voluntario', 0, 'ACTIVO', NULL, NULL),
-(23, 'KELLY PAOLA', 'ESPINOZA ROJAS', '46401524', 'keyla@gmail.com', '987456741', 'contadora', 'Líder de Equipo', 1, 'ACTIVO', NULL, NULL),
-(24, 'ROSA FIORELLA', 'VICUÑA MUNAYCO', '71854125', 'rosa@gmail.con', '987456214', 'Enfermeria', 'Coordinador de Proyecto', 1, 'ACTIVO', 28, NULL),
-(25, 'MANUEL', 'RODRIGUEZ MOLINA', '78451240', 'manuel@gmail.com', '963258741', 'Ingeneria Civil', 'Voluntario', 0, 'ACTIVO', NULL, NULL),
-(26, 'JESUS JUNIOR', 'GONZALES RAMOS', '71965478', 'jesus@gmail.com', '963852147', 'ingeneria civil', 'Encargado de Logística', 0, 'ACTIVO', 21, NULL);
-
---
 -- Índices para tablas volcadas
 --
-
---
--- Indices de la tabla `actividad`
---
-ALTER TABLE `actividad`
-  ADD PRIMARY KEY (`id_actividad`),
-  ADD KEY `id_beneficiario` (`id_beneficiario`),
-  ADD KEY `id_usuario_creador` (`id_usuario_creador`);
 
 --
 -- Indices de la tabla `actividades`
@@ -2651,6 +2395,14 @@ ALTER TABLE `actividad`
 ALTER TABLE `actividades`
   ADD PRIMARY KEY (`id_actividad`),
   ADD KEY `fk_actividad_usuario` (`id_usuario`);
+
+--
+-- Indices de la tabla `actividad_beneficiario`
+--
+ALTER TABLE `actividad_beneficiario`
+  ADD PRIMARY KEY (`id_actividad_beneficiario`),
+  ADD KEY `idx_ab_act` (`id_actividad`),
+  ADD KEY `idx_ab_ben` (`id_beneficiario`);
 
 --
 -- Indices de la tabla `actividad_lugar`
@@ -2685,14 +2437,6 @@ ALTER TABLE `asistencias`
 --
 ALTER TABLE `beneficiario`
   ADD PRIMARY KEY (`id_beneficiario`);
-
---
--- Indices de la tabla `beneficiario_old`
---
-ALTER TABLE `beneficiario_old`
-  ADD PRIMARY KEY (`id_beneficiario`),
-  ADD KEY `id_tipo_beneficiario` (`id_tipo_beneficiario`),
-  ADD KEY `idx_beneficiario_id_usuario` (`id_usuario`);
 
 --
 -- Indices de la tabla `categoria_inventario`
@@ -2808,42 +2552,16 @@ ALTER TABLE `permiso`
   ADD PRIMARY KEY (`id_permiso`);
 
 --
--- Indices de la tabla `programacion_donacion`
---
-ALTER TABLE `programacion_donacion`
-  ADD PRIMARY KEY (`id_programacion`),
-  ADD KEY `id_donacion` (`id_donacion`),
-  ADD KEY `id_voluntario` (`id_voluntario`),
-  ADD KEY `id_usuario_registro` (`id_usuario_registro`),
-  ADD KEY `id_beneficiario` (`id_beneficiario`),
-  ADD KEY `id_lugar` (`id_lugar`);
-
---
 -- Indices de la tabla `recurso`
 --
 ALTER TABLE `recurso`
   ADD PRIMARY KEY (`id_recurso`);
 
 --
--- Indices de la tabla `responsable_beneficiario`
---
-ALTER TABLE `responsable_beneficiario`
-  ADD PRIMARY KEY (`id_responsable`),
-  ADD KEY `id_beneficiario` (`id_beneficiario`);
-
---
 -- Indices de la tabla `rol_actividad`
 --
 ALTER TABLE `rol_actividad`
   ADD PRIMARY KEY (`id_rol_actividad`);
-
---
--- Indices de la tabla `rol_permiso`
---
-ALTER TABLE `rol_permiso`
-  ADD PRIMARY KEY (`id_rol_permiso`),
-  ADD KEY `id_rol_sistema` (`id_rol_sistema`),
-  ADD KEY `id_permiso` (`id_permiso`);
 
 --
 -- Indices de la tabla `rol_sistema`
@@ -2864,8 +2582,8 @@ ALTER TABLE `salida_donacion`
 --
 ALTER TABLE `salida_inventario`
   ADD PRIMARY KEY (`id_salida_inv`),
-  ADD KEY `id_actividad` (`id_actividad`),
-  ADD KEY `id_usuario_registro` (`id_usuario_registro`);
+  ADD KEY `id_usuario_registro` (`id_usuario_registro`),
+  ADD KEY `salida_inventario_ibfk_1` (`id_actividad`);
 
 --
 -- Indices de la tabla `salida_inventario_detalle`
@@ -2874,12 +2592,6 @@ ALTER TABLE `salida_inventario_detalle`
   ADD PRIMARY KEY (`id_detalle`),
   ADD KEY `id_salida_inv` (`id_salida_inv`),
   ADD KEY `id_item` (`id_item`);
-
---
--- Indices de la tabla `tipo_beneficiario`
---
-ALTER TABLE `tipo_beneficiario`
-  ADD PRIMARY KEY (`id_tipo_beneficiario`);
 
 --
 -- Indices de la tabla `tipo_donacion`
@@ -2914,6 +2626,9 @@ ALTER TABLE `usuario_rol`
 --
 ALTER TABLE `voluntario`
   ADD PRIMARY KEY (`id_voluntario`),
+  ADD UNIQUE KEY `uq_voluntario_dni` (`dni`),
+  ADD UNIQUE KEY `uq_voluntario_correo` (`correo`),
+  ADD UNIQUE KEY `uq_voluntario_telefono` (`telefono`),
   ADD KEY `id_usuario` (`id_usuario`),
   ADD KEY `fk_voluntario_rol` (`id_rol_actividad`);
 
@@ -2922,16 +2637,16 @@ ALTER TABLE `voluntario`
 --
 
 --
--- AUTO_INCREMENT de la tabla `actividad`
---
-ALTER TABLE `actividad`
-  MODIFY `id_actividad` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT de la tabla `actividades`
 --
 ALTER TABLE `actividades`
-  MODIFY `id_actividad` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id_actividad` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+
+--
+-- AUTO_INCREMENT de la tabla `actividad_beneficiario`
+--
+ALTER TABLE `actividad_beneficiario`
+  MODIFY `id_actividad_beneficiario` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `actividad_lugar`
@@ -2943,25 +2658,19 @@ ALTER TABLE `actividad_lugar`
 -- AUTO_INCREMENT de la tabla `actividad_recurso`
 --
 ALTER TABLE `actividad_recurso`
-  MODIFY `id_actividad_recurso` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_actividad_recurso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT de la tabla `asistencias`
 --
 ALTER TABLE `asistencias`
-  MODIFY `id_asistencia` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id_asistencia` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT de la tabla `beneficiario`
 --
 ALTER TABLE `beneficiario`
-  MODIFY `id_beneficiario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-
---
--- AUTO_INCREMENT de la tabla `beneficiario_old`
---
-ALTER TABLE `beneficiario_old`
-  MODIFY `id_beneficiario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_beneficiario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `categoria_inventario`
@@ -2973,13 +2682,13 @@ ALTER TABLE `categoria_inventario`
 -- AUTO_INCREMENT de la tabla `certificados`
 --
 ALTER TABLE `certificados`
-  MODIFY `id_certificado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_certificado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `donacion`
 --
 ALTER TABLE `donacion`
-  MODIFY `id_donacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id_donacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT de la tabla `donacion_detalle`
@@ -2991,19 +2700,19 @@ ALTER TABLE `donacion_detalle`
 -- AUTO_INCREMENT de la tabla `donacion_donante`
 --
 ALTER TABLE `donacion_donante`
-  MODIFY `id_donacion_donante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id_donacion_donante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de la tabla `donante`
 --
 ALTER TABLE `donante`
-  MODIFY `id_donante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_donante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT de la tabla `eventos_calendario`
 --
 ALTER TABLE `eventos_calendario`
-  MODIFY `id_evento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_evento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `inventario_item`
@@ -3021,7 +2730,7 @@ ALTER TABLE `inventario_movimiento`
 -- AUTO_INCREMENT de la tabla `lugar`
 --
 ALTER TABLE `lugar`
-  MODIFY `id_lugar` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_lugar` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `movimiento_financiero`
@@ -3033,13 +2742,13 @@ ALTER TABLE `movimiento_financiero`
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id_notificacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_notificacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT de la tabla `participacion`
 --
 ALTER TABLE `participacion`
-  MODIFY `id_participacion` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_participacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT de la tabla `permiso`
@@ -3048,34 +2757,16 @@ ALTER TABLE `permiso`
   MODIFY `id_permiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
--- AUTO_INCREMENT de la tabla `programacion_donacion`
---
-ALTER TABLE `programacion_donacion`
-  MODIFY `id_programacion` int(11) NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT de la tabla `recurso`
 --
 ALTER TABLE `recurso`
-  MODIFY `id_recurso` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT de la tabla `responsable_beneficiario`
---
-ALTER TABLE `responsable_beneficiario`
-  MODIFY `id_responsable` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_recurso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT de la tabla `rol_actividad`
 --
 ALTER TABLE `rol_actividad`
   MODIFY `id_rol_actividad` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
-
---
--- AUTO_INCREMENT de la tabla `rol_permiso`
---
-ALTER TABLE `rol_permiso`
-  MODIFY `id_rol_permiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT de la tabla `rol_sistema`
@@ -3100,12 +2791,6 @@ ALTER TABLE `salida_inventario`
 --
 ALTER TABLE `salida_inventario_detalle`
   MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT de la tabla `tipo_beneficiario`
---
-ALTER TABLE `tipo_beneficiario`
-  MODIFY `id_tipo_beneficiario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `tipo_donacion`
@@ -3135,18 +2820,11 @@ ALTER TABLE `usuario_rol`
 -- AUTO_INCREMENT de la tabla `voluntario`
 --
 ALTER TABLE `voluntario`
-  MODIFY `id_voluntario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id_voluntario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
 
 --
 -- Restricciones para tablas volcadas
 --
-
---
--- Filtros para la tabla `actividad`
---
-ALTER TABLE `actividad`
-  ADD CONSTRAINT `actividad_ibfk_1` FOREIGN KEY (`id_beneficiario`) REFERENCES `beneficiario_old` (`id_beneficiario`),
-  ADD CONSTRAINT `actividad_ibfk_2` FOREIGN KEY (`id_usuario_creador`) REFERENCES `usuario` (`id_usuario`);
 
 --
 -- Filtros para la tabla `actividades`
@@ -3155,17 +2833,24 @@ ALTER TABLE `actividades`
   ADD CONSTRAINT `fk_actividad_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuario` (`id_usuario`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
+-- Filtros para la tabla `actividad_beneficiario`
+--
+ALTER TABLE `actividad_beneficiario`
+  ADD CONSTRAINT `fk_ab_actividad` FOREIGN KEY (`id_actividad`) REFERENCES `actividades` (`id_actividad`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_ab_beneficiario` FOREIGN KEY (`id_beneficiario`) REFERENCES `beneficiario` (`id_beneficiario`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Filtros para la tabla `actividad_lugar`
 --
 ALTER TABLE `actividad_lugar`
-  ADD CONSTRAINT `actividad_lugar_ibfk_1` FOREIGN KEY (`id_actividad`) REFERENCES `actividad` (`id_actividad`),
+  ADD CONSTRAINT `actividad_lugar_ibfk_1` FOREIGN KEY (`id_actividad`) REFERENCES `actividades` (`id_actividad`),
   ADD CONSTRAINT `actividad_lugar_ibfk_2` FOREIGN KEY (`id_lugar`) REFERENCES `lugar` (`id_lugar`);
 
 --
 -- Filtros para la tabla `actividad_recurso`
 --
 ALTER TABLE `actividad_recurso`
-  ADD CONSTRAINT `actividad_recurso_ibfk_1` FOREIGN KEY (`id_actividad`) REFERENCES `actividad` (`id_actividad`),
+  ADD CONSTRAINT `actividad_recurso_ibfk_1` FOREIGN KEY (`id_actividad`) REFERENCES `actividades` (`id_actividad`),
   ADD CONSTRAINT `actividad_recurso_ibfk_2` FOREIGN KEY (`id_recurso`) REFERENCES `recurso` (`id_recurso`);
 
 --
@@ -3175,12 +2860,6 @@ ALTER TABLE `asistencias`
   ADD CONSTRAINT `fk_asistencia_actividad` FOREIGN KEY (`id_actividad`) REFERENCES `actividades` (`id_actividad`),
   ADD CONSTRAINT `fk_asistencia_usuario` FOREIGN KEY (`id_usuario_registro`) REFERENCES `usuario` (`id_usuario`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_asistencia_voluntario` FOREIGN KEY (`id_voluntario`) REFERENCES `voluntario` (`id_voluntario`);
-
---
--- Filtros para la tabla `beneficiario_old`
---
-ALTER TABLE `beneficiario_old`
-  ADD CONSTRAINT `beneficiario_old_ibfk_1` FOREIGN KEY (`id_tipo_beneficiario`) REFERENCES `tipo_beneficiario` (`id_tipo_beneficiario`);
 
 --
 -- Filtros para la tabla `certificados`
@@ -3244,24 +2923,8 @@ ALTER TABLE `notificaciones`
 --
 ALTER TABLE `participacion`
   ADD CONSTRAINT `participacion_ibfk_1` FOREIGN KEY (`id_voluntario`) REFERENCES `voluntario` (`id_voluntario`),
-  ADD CONSTRAINT `participacion_ibfk_2` FOREIGN KEY (`id_actividad`) REFERENCES `actividad` (`id_actividad`),
+  ADD CONSTRAINT `participacion_ibfk_2` FOREIGN KEY (`id_actividad`) REFERENCES `actividades` (`id_actividad`),
   ADD CONSTRAINT `participacion_ibfk_3` FOREIGN KEY (`id_rol_actividad`) REFERENCES `rol_actividad` (`id_rol_actividad`);
-
---
--- Filtros para la tabla `programacion_donacion`
---
-ALTER TABLE `programacion_donacion`
-  ADD CONSTRAINT `programacion_donacion_ibfk_1` FOREIGN KEY (`id_donacion`) REFERENCES `donacion` (`id_donacion`),
-  ADD CONSTRAINT `programacion_donacion_ibfk_2` FOREIGN KEY (`id_voluntario`) REFERENCES `voluntario` (`id_voluntario`),
-  ADD CONSTRAINT `programacion_donacion_ibfk_3` FOREIGN KEY (`id_usuario_registro`) REFERENCES `usuario` (`id_usuario`),
-  ADD CONSTRAINT `programacion_donacion_ibfk_4` FOREIGN KEY (`id_beneficiario`) REFERENCES `beneficiario_old` (`id_beneficiario`),
-  ADD CONSTRAINT `programacion_donacion_ibfk_5` FOREIGN KEY (`id_lugar`) REFERENCES `lugar` (`id_lugar`);
-
---
--- Filtros para la tabla `responsable_beneficiario`
---
-ALTER TABLE `responsable_beneficiario`
-  ADD CONSTRAINT `responsable_beneficiario_ibfk_1` FOREIGN KEY (`id_beneficiario`) REFERENCES `beneficiario_old` (`id_beneficiario`);
 
 --
 -- Filtros para la tabla `salida_donacion`
@@ -3274,7 +2937,7 @@ ALTER TABLE `salida_donacion`
 -- Filtros para la tabla `salida_inventario`
 --
 ALTER TABLE `salida_inventario`
-  ADD CONSTRAINT `salida_inventario_ibfk_1` FOREIGN KEY (`id_actividad`) REFERENCES `actividad` (`id_actividad`),
+  ADD CONSTRAINT `salida_inventario_ibfk_1` FOREIGN KEY (`id_actividad`) REFERENCES `actividades` (`id_actividad`),
   ADD CONSTRAINT `salida_inventario_ibfk_2` FOREIGN KEY (`id_usuario_registro`) REFERENCES `usuario` (`id_usuario`);
 
 --

@@ -23,103 +23,83 @@ public class VoluntarioRepositoryImpl implements VoluntarioRepositoryCustom {
 
     @Override
     public boolean crearVoluntario(Voluntario voluntario) {
-        try {
-            StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_crear_voluntario");
-            spq.registerStoredProcedureParameter("p_nombres",         String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_apellidos",       String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_dni",             String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_correo",          String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_telefono",        String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_carrera",         String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_id_usuario",      Integer.class, ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_cargo",           String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_acceso_sistema",  Integer.class, ParameterMode.IN);
-            spq.setParameter("p_nombres",        voluntario.getNombres());
-            spq.setParameter("p_apellidos",      voluntario.getApellidos());
-            spq.setParameter("p_dni",            voluntario.getDni());
-            spq.setParameter("p_correo",         voluntario.getCorreo());
-            spq.setParameter("p_telefono",       voluntario.getTelefono());
-            spq.setParameter("p_carrera",        voluntario.getCarrera());
-            spq.setParameter("p_id_usuario",     voluntario.getIdUsuario() != null ? voluntario.getIdUsuario() : 0);
-            spq.setParameter("p_cargo",          voluntario.getCargo() != null ? voluntario.getCargo() : "Voluntario");
-            spq.setParameter("p_acceso_sistema", voluntario.isAccesoSistema() ? 1 : 0);
-            spq.execute();
-            logger.info("✓ Voluntario creado: " + voluntario.getNombres());
-            return true;
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "✗ Error al crear voluntario: " + e.getMessage(), e);
-            return false;
-        }
+        StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_crear_voluntario");
+        spq.registerStoredProcedureParameter("p_nombres",         String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_apellidos",       String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_dni",             String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_correo",          String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_telefono",        String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_carrera",         String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_id_usuario",      Integer.class, ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_cargo",           String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_acceso_sistema",  Integer.class, ParameterMode.IN);
+        spq.setParameter("p_nombres",        voluntario.getNombres());
+        spq.setParameter("p_apellidos",      voluntario.getApellidos());
+        spq.setParameter("p_dni",            voluntario.getDni());
+        spq.setParameter("p_correo",         voluntario.getCorreo());
+        spq.setParameter("p_telefono",       voluntario.getTelefono());
+        spq.setParameter("p_carrera",        voluntario.getCarrera());
+        spq.setParameter("p_id_usuario",     voluntario.getIdUsuario() != null ? voluntario.getIdUsuario() : 0);
+        spq.setParameter("p_cargo",          voluntario.getCargo() != null ? voluntario.getCargo() : "Voluntario");
+        spq.setParameter("p_acceso_sistema", voluntario.isAccesoSistema() ? 1 : 0);
+        spq.execute();
+        logger.info("✓ Voluntario creado: " + voluntario.getNombres());
+        return true;
     }
 
     @Override
     @Transactional
     public boolean actualizarVoluntario(Voluntario voluntario) {
-        try {
-            // 1) Llamar al SP existente para los campos básicos
-            StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_actualizar_voluntario");
-            spq.registerStoredProcedureParameter("p_id_voluntario", Integer.class, ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_nombres",       String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_apellidos",     String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_dni",           String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_correo",        String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_telefono",      String.class,  ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_carrera",       String.class,  ParameterMode.IN);
-            spq.setParameter("p_id_voluntario", voluntario.getIdVoluntario());
-            spq.setParameter("p_nombres",       voluntario.getNombres());
-            spq.setParameter("p_apellidos",     voluntario.getApellidos());
-            spq.setParameter("p_dni",           voluntario.getDni());
-            spq.setParameter("p_correo",        voluntario.getCorreo());
-            spq.setParameter("p_telefono",      voluntario.getTelefono());
-            spq.setParameter("p_carrera",       voluntario.getCarrera());
-            spq.execute();
+        // 1) Llamar al SP existente para los campos básicos
+        StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_actualizar_voluntario");
+        spq.registerStoredProcedureParameter("p_id_voluntario", Integer.class, ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_nombres",       String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_apellidos",     String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_dni",           String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_correo",        String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_telefono",      String.class,  ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_carrera",       String.class,  ParameterMode.IN);
+        spq.setParameter("p_id_voluntario", voluntario.getIdVoluntario());
+        spq.setParameter("p_nombres",       voluntario.getNombres());
+        spq.setParameter("p_apellidos",     voluntario.getApellidos());
+        spq.setParameter("p_dni",           voluntario.getDni());
+        spq.setParameter("p_correo",        voluntario.getCorreo());
+        spq.setParameter("p_telefono",      voluntario.getTelefono());
+        spq.setParameter("p_carrera",       voluntario.getCarrera());
+        spq.execute();
 
-            // 2) Actualizar cargo y acceso_sistema (campos no incluidos en el SP)
-            em.createNativeQuery("UPDATE voluntario SET cargo = :cargo, acceso_sistema = :acceso WHERE id_voluntario = :id")
-              .setParameter("cargo",  voluntario.getCargo() != null ? voluntario.getCargo() : "Voluntario")
-              .setParameter("acceso", voluntario.isAccesoSistema() ? 1 : 0)
-              .setParameter("id",     voluntario.getIdVoluntario())
-              .executeUpdate();
+        // 2) Actualizar cargo y acceso_sistema (campos no incluidos en el SP)
+        em.createNativeQuery("UPDATE voluntario SET cargo = :cargo, acceso_sistema = :acceso WHERE id_voluntario = :id")
+          .setParameter("cargo",  voluntario.getCargo() != null ? voluntario.getCargo() : "Voluntario")
+          .setParameter("acceso", voluntario.isAccesoSistema() ? 1 : 0)
+          .setParameter("id",     voluntario.getIdVoluntario())
+          .executeUpdate();
 
-            logger.info("✓ Voluntario actualizado (cargo=" + voluntario.getCargo()
-                      + ", accesoSistema=" + voluntario.isAccesoSistema() + "): " + voluntario.getNombres());
-            return true;
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "✗ Error al actualizar voluntario", e);
-            return false;
-        }
+        logger.info("✓ Voluntario actualizado (cargo=" + voluntario.getCargo()
+                  + ", accesoSistema=" + voluntario.isAccesoSistema() + "): " + voluntario.getNombres());
+        return true;
     }
 
     @Override
     public boolean cambiarEstado(int idVoluntario, String nuevoEstado) {
-        try {
-            StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_cambiar_estado_voluntario");
-            spq.registerStoredProcedureParameter("p_id_voluntario", Integer.class, ParameterMode.IN);
-            spq.registerStoredProcedureParameter("p_estado",        String.class,  ParameterMode.IN);
-            spq.setParameter("p_id_voluntario", idVoluntario);
-            spq.setParameter("p_estado",        nuevoEstado);
-            spq.execute();
-            logger.info("✓ Estado del voluntario actualizado a: " + nuevoEstado);
-            return true;
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "✗ Error al cambiar estado del voluntario", e);
-            return false;
-        }
+        StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_cambiar_estado_voluntario");
+        spq.registerStoredProcedureParameter("p_id_voluntario", Integer.class, ParameterMode.IN);
+        spq.registerStoredProcedureParameter("p_estado",        String.class,  ParameterMode.IN);
+        spq.setParameter("p_id_voluntario", idVoluntario);
+        spq.setParameter("p_estado",        nuevoEstado);
+        spq.execute();
+        logger.info("✓ Estado del voluntario actualizado a: " + nuevoEstado);
+        return true;
     }
 
     @Override
     public boolean eliminarVoluntario(int idVoluntario) {
-        try {
-            StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_eliminar_voluntario");
-            spq.registerStoredProcedureParameter("p_id_voluntario", Integer.class, ParameterMode.IN);
-            spq.setParameter("p_id_voluntario", idVoluntario);
-            spq.execute();
-            logger.info("✓ Voluntario eliminado correctamente ID: " + idVoluntario);
-            return true;
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "✗ Error al eliminar voluntario", e);
-            return false;
-        }
+        StoredProcedureQuery spq = em.createStoredProcedureQuery("sp_eliminar_voluntario");
+        spq.registerStoredProcedureParameter("p_id_voluntario", Integer.class, ParameterMode.IN);
+        spq.setParameter("p_id_voluntario", idVoluntario);
+        spq.execute();
+        logger.info("✓ Voluntario eliminado correctamente ID: " + idVoluntario);
+        return true;
     }
 
     @Override
