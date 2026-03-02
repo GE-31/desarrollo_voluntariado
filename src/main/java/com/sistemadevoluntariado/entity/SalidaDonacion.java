@@ -51,6 +51,9 @@ public class SalidaDonacion {
     @Column(name = "motivo_anulacion")
     private String motivoAnulacion;
 
+    @Column(name = "comprobante")
+    private String comprobante;
+
     // ── Campos de display (no columnas de la tabla) ──
 
     @Transient
@@ -184,6 +187,14 @@ public class SalidaDonacion {
 
     public void setMotivoAnulacion(String motivoAnulacion) {
         this.motivoAnulacion = motivoAnulacion;
+    }
+
+    public String getComprobante() {
+        return comprobante;
+    }
+
+    public void setComprobante(String comprobante) {
+        this.comprobante = comprobante;
     }
 
     // ── Transient getters/setters ──

@@ -3,13 +3,13 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 01-03-2026 a las 19:19:53
+-- Tiempo de generación: 02-03-2026 a las 04:47:18
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
-SET time_zone = "+00:00";
+SET time_zone = "+00:00"; 
 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -112,6 +112,27 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_beneficiario_nuevo` (
         dni = p_dni,
         telefono = p_telefono
     WHERE id_beneficiario = p_id_beneficiario;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_cubierta_recurso_campana` (IN `p_id` INT, IN `p_cantidad_cubierta` DOUBLE)   BEGIN
+    DECLARE v_requerida DOUBLE DEFAULT 0;
+    DECLARE v_estado VARCHAR(20);
+
+    SELECT cantidad_requerida INTO v_requerida
+    FROM recurso_campana WHERE id_recurso_campana = p_id;
+
+    IF p_cantidad_cubierta <= 0 THEN
+        SET v_estado = 'PENDIENTE';
+    ELSEIF p_cantidad_cubierta < v_requerida THEN
+        SET v_estado = 'PARCIAL';
+    ELSE
+        SET v_estado = 'COMPLETO';
+    END IF;
+
+    UPDATE recurso_campana
+    SET cantidad_cubierta = p_cantidad_cubierta, estado = v_estado
+    WHERE id_recurso_campana = p_id;
+    SELECT ROW_COUNT() AS filas;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_detalle_especie` (IN `p_id_donacion` INT, IN `p_cantidad` DECIMAL(10,2), IN `p_observacion` VARCHAR(255))   BEGIN
@@ -217,13 +238,27 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_item_inventario` (IN 
     SELECT ROW_COUNT() AS filas_afectadas;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_salida_donacion` (IN `p_id_salida` INT, IN `p_id_actividad` INT, IN `p_cantidad` DOUBLE, IN `p_descripcion` TEXT, IN `p_id_item` INT, IN `p_cantidad_item` DOUBLE)   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_recurso_campana` (IN `p_id` INT, IN `p_id_actividad` INT, IN `p_id_item` INT, IN `p_cantidad_requerida` DOUBLE, IN `p_cantidad_cubierta` DOUBLE, IN `p_unidad` VARCHAR(50), IN `p_estado` VARCHAR(20), IN `p_observaciones` TEXT)   BEGIN
+    UPDATE recurso_campana
+    SET id_actividad = p_id_actividad,
+        id_item = p_id_item,
+        cantidad_requerida = p_cantidad_requerida,
+        cantidad_cubierta = p_cantidad_cubierta,
+        unidad = p_unidad,
+        estado = p_estado,
+        observaciones = p_observaciones
+    WHERE id_recurso_campana = p_id;
+    SELECT ROW_COUNT() AS filas;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_actualizar_salida_donacion` (IN `p_id_salida` INT, IN `p_id_actividad` INT, IN `p_cantidad` DOUBLE, IN `p_descripcion` TEXT, IN `p_id_item` INT, IN `p_cantidad_item` DOUBLE, IN `p_comprobante` VARCHAR(100))   BEGIN
     UPDATE salida_donacion
     SET id_actividad = p_id_actividad,
         cantidad = p_cantidad,
         descripcion = p_descripcion,
         id_item = IF(p_id_item = 0, NULL, p_id_item),
         cantidad_item = IF(p_cantidad_item = 0, NULL, p_cantidad_item),
+        comprobante = NULLIF(p_comprobante, ''),
         actualizado_en = NOW()
     WHERE id_salida = p_id_salida
       AND estado = 'PENDIENTE';
@@ -665,6 +700,43 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_dashboard_total_horas` ()   BEGI
     WHERE estado IN ('ASISTIO', 'TARDANZA');
 END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_donacionesPorCampana` ()   BEGIN
+    SELECT
+        COALESCE(a.nombre, 'Sin actividad') AS campana,
+        SUM(CASE WHEN d.estado = 'CONFIRMADO' THEN d.cantidad ELSE 0 END) AS monto_confirmado,
+        SUM(CASE WHEN d.estado = 'PENDIENTE'  THEN d.cantidad ELSE 0 END) AS monto_pendiente,
+        COUNT(*) AS total_donaciones
+    FROM donacion d
+    LEFT JOIN actividades a ON d.id_actividad = a.id_actividad
+    WHERE d.id_tipo_donacion = 1
+      AND d.estado IN ('CONFIRMADO', 'PENDIENTE')
+    GROUP BY a.nombre
+    ORDER BY monto_confirmado DESC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_donaciones_disponibles_tesoreria` (IN `p_busqueda` VARCHAR(200))   BEGIN
+    SELECT 
+        d.id_donacion,
+        d.cantidad AS monto_original,
+        IFNULL(dn.nombre, 'ANONIMO') AS donante,
+        dn.dni,
+        dn.ruc,
+        a.nombre AS actividad_origen,
+        (d.cantidad 
+            - COALESCE((SELECT SUM(sd2.cantidad) FROM salida_donacion sd2 WHERE sd2.id_donacion = d.id_donacion AND sd2.estado = 'CONFIRMADO' AND sd2.tipo_salida = 'DINERO'), 0)
+            - COALESCE((SELECT SUM(gd2.monto) FROM gasto_donacion gd2 WHERE gd2.id_donacion = d.id_donacion), 0)
+        ) AS saldo_disponible
+    FROM donacion d
+    LEFT JOIN donacion_donante dd ON dd.id_donacion = d.id_donacion
+    LEFT JOIN donante dn ON dn.id_donante = dd.id_donante
+    LEFT JOIN actividades a ON a.id_actividad = d.id_actividad
+    WHERE d.estado = 'CONFIRMADO'
+      AND d.cantidad IS NOT NULL
+      AND d.cantidad > 0
+    HAVING saldo_disponible > 0
+    ORDER BY d.id_donacion DESC;
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminarDonacion` (IN `p_id_donacion` INT)   BEGIN
     DELETE FROM donacion WHERE id_donacion = p_id_donacion;
     SELECT ROW_COUNT() AS filas_afectadas;
@@ -696,8 +768,21 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_evento` (IN `p_id_event
     DELETE FROM eventos_calendario WHERE id_evento = p_id_evento;
 END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_notificacion` (IN `p_id` INT)   BEGIN
+    DELETE FROM notificaciones WHERE id_notificacion = p_id;
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_permisos_usuario` (IN `p_id_usuario` INT)   BEGIN
     DELETE FROM usuario_permiso WHERE id_usuario = p_id_usuario;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_recurso_campana` (IN `p_id` INT)   BEGIN
+    DELETE FROM recurso_campana WHERE id_recurso_campana = p_id;
+    SELECT ROW_COUNT() AS filas;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_todas_notificaciones` (IN `p_id_usuario` INT)   BEGIN
+    DELETE FROM notificaciones WHERE id_usuario = p_id_usuario;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_eliminar_usuario` (IN `p_id_usuario` INT)   BEGIN
@@ -736,7 +821,7 @@ END$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_filtrarMovimientos` (IN `p_tipo` VARCHAR(10), IN `p_categoria` VARCHAR(60), IN `p_fecha_ini` DATE, IN `p_fecha_fin` DATE, IN `p_busqueda` VARCHAR(200))   BEGIN
     SELECT m.id_movimiento, m.tipo, m.monto, m.descripcion,
            m.categoria, m.comprobante, m.fecha_movimiento,
-           IFNULL(a.nombre, '—') AS actividad,
+           IFNULL(a.nombre, 'ù') AS actividad,
            m.id_actividad,
            CONCAT(u.nombres, ' ', u.apellidos) AS usuario_registro,
            m.creado_en
@@ -806,6 +891,34 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_generar_notificaciones_eventos_h
             AND n.titulo = CONCAT('Evento hoy: ', e.titulo)
             AND DATE(n.fecha_creacion) = CURDATE()
       );
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_generar_notif_dia_lleno` (IN `p_id_usuario` INT, IN `p_fecha` DATE)   BEGIN
+    DECLARE v_count INT DEFAULT 0;
+    SELECT COUNT(*) INTO v_count
+    FROM eventos_calendario
+    WHERE id_usuario = p_id_usuario AND DATE(fecha_inicio) = p_fecha;
+
+    IF v_count >= 3 THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM notificaciones
+            WHERE id_usuario = p_id_usuario
+              AND tipo = 'DIA_LLENO'
+              AND DATE(fecha_creacion) = CURDATE()
+              AND referencia_id = DATEDIFF(p_fecha, '2000-01-01')
+        ) THEN
+            INSERT INTO notificaciones (id_usuario, tipo, titulo, mensaje, icono, color, referencia_id)
+            VALUES (
+                p_id_usuario,
+                'DIA_LLENO',
+                CONCAT('Agenda llena: ', DATE_FORMAT(p_fecha, '%d/%m/%Y')),
+                CONCAT('Tienes ', v_count, ' eventos agendados para el ', DATE_FORMAT(p_fecha, '%d/%m/%Y'), '. El dia esta completo.'),
+                'fa-calendar-days',
+                '#f59e0b',
+                DATEDIFF(p_fecha, '2000-01-01')
+            );
+        END IF;
+    END IF;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_guardarDonacion` (IN `p_cantidad` DOUBLE, IN `p_descripcion` VARCHAR(150), IN `p_id_tipo_donacion` INT, IN `p_id_actividad` INT, IN `p_id_usuario_registro` INT)   BEGIN
@@ -1049,6 +1162,31 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_listar_notificaciones` (IN `p_id
     WHERE id_usuario = p_id_usuario
     ORDER BY fecha_creacion DESC
     LIMIT 20;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_listar_recursos_campana` ()   BEGIN
+    SELECT rc.id_recurso_campana, rc.id_actividad, rc.id_item,
+           rc.cantidad_requerida, rc.cantidad_cubierta, rc.unidad, rc.estado,
+           rc.observaciones, rc.fecha_registro,
+           a.nombre AS nombre_actividad,
+           i.nombre AS nombre_item, i.categoria AS categoria_item
+    FROM recurso_campana rc
+    LEFT JOIN actividades a ON a.id_actividad = rc.id_actividad
+    LEFT JOIN inventario_item i ON i.id_item = rc.id_item
+    ORDER BY rc.fecha_registro DESC;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_listar_recursos_campana_por_actividad` (IN `p_id_actividad` INT)   BEGIN
+    SELECT rc.id_recurso_campana, rc.id_actividad, rc.id_item,
+           rc.cantidad_requerida, rc.cantidad_cubierta, rc.unidad, rc.estado,
+           rc.observaciones, rc.fecha_registro,
+           a.nombre AS nombre_actividad,
+           i.nombre AS nombre_item, i.categoria AS categoria_item
+    FROM recurso_campana rc
+    LEFT JOIN actividades a ON a.id_actividad = rc.id_actividad
+    LEFT JOIN inventario_item i ON i.id_item = rc.id_item
+    WHERE rc.id_actividad = p_id_actividad
+    ORDER BY rc.fecha_registro DESC;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_listar_salidas_donaciones` ()   BEGIN
@@ -1314,6 +1452,18 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_permisos_usuario` (IN `p
     ORDER BY p.id_permiso;
 END$$
 
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_recurso_campana` (IN `p_id` INT)   BEGIN
+    SELECT rc.id_recurso_campana, rc.id_actividad, rc.id_item,
+           rc.cantidad_requerida, rc.cantidad_cubierta, rc.unidad, rc.estado,
+           rc.observaciones, rc.fecha_registro,
+           a.nombre AS nombre_actividad,
+           i.nombre AS nombre_item, i.categoria AS categoria_item
+    FROM recurso_campana rc
+    LEFT JOIN actividades a ON a.id_actividad = rc.id_actividad
+    LEFT JOIN inventario_item i ON i.id_item = rc.id_item
+    WHERE rc.id_recurso_campana = p_id;
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_roles_por_usuario` ()   BEGIN
     SELECT ur.id_usuario, rs.nombre_rol
     FROM usuario_rol ur
@@ -1322,15 +1472,17 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_roles_por_usuario` ()   
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_saldo_donacion` (IN `p_id_donacion` INT)   BEGIN
-    SELECT
-        d.cantidad AS cantidad_original,
-        d.cantidad - COALESCE(
-            (SELECT SUM(s.cantidad) FROM salida_donacion s
-             WHERE s.id_donacion = d.id_donacion AND s.estado != 'ANULADO'), 0
-        ) AS saldo_disponible,
-        td.nombre AS tipo_donacion
+    SELECT 
+        d.id_donacion,
+        d.cantidad AS monto_original,
+        IFNULL(dn.nombre, 'ANONIMO') AS donante,
+        (d.cantidad 
+            - COALESCE((SELECT SUM(sd2.cantidad) FROM salida_donacion sd2 WHERE sd2.id_donacion = d.id_donacion AND sd2.estado = 'CONFIRMADO' AND sd2.tipo_salida = 'DINERO'), 0)
+            - COALESCE((SELECT SUM(gd2.monto) FROM gasto_donacion gd2 WHERE gd2.id_donacion = d.id_donacion), 0)
+        ) AS saldo_disponible
     FROM donacion d
-    INNER JOIN tipo_donacion td ON td.id_tipo_donacion = d.id_tipo_donacion
+    LEFT JOIN donacion_donante dd ON dd.id_donacion = d.id_donacion
+    LEFT JOIN donante dn ON dn.id_donante = dd.id_donante
     WHERE d.id_donacion = p_id_donacion;
 END$$
 
@@ -1356,7 +1508,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_obtener_salida_donacion` (IN `p_
         COALESCE(dn.nombre, 'AN├ôNIMO') AS donante_nombre,
         s.motivo_anulacion,
         s.anulado_en,
-        d.descripcion AS donacion_descripcion
+        d.descripcion AS donacion_descripcion,
+        s.comprobante
     FROM salida_donacion s
     INNER JOIN donacion d ON d.id_donacion = s.id_donacion
     INNER JOIN tipo_donacion td ON td.id_tipo_donacion = d.id_tipo_donacion
@@ -1473,31 +1626,6 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_proxima_actividad` ()   BEGIN
       AND estado = 'ACTIVO'
     ORDER BY fecha_inicio ASC
     LIMIT 1;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_sincronizar_donaciones_tesoreria` ()   BEGIN
-    DECLARE v_count INT DEFAULT 0;
-
-    INSERT INTO movimiento_financiero (tipo, monto, descripcion, categoria, comprobante, fecha_movimiento, id_actividad, id_usuario)
-    SELECT
-        'INGRESO',
-        d.cantidad,
-        CONCAT('Donación', IF(d.descripcion IS NOT NULL AND d.descripcion != '', CONCAT(': ', d.descripcion), ''), ' (Donacion #', d.id_donacion, ')'),
-        'Donaciones',
-        CONCAT('BOLETA-', d.id_donacion),
-        CURDATE(),
-        d.id_actividad,
-        d.id_usuario_registro
-    FROM donacion d
-    WHERE d.id_tipo_donacion = 1
-      AND d.estado = 'CONFIRMADO'
-      AND NOT EXISTS (
-          SELECT 1 FROM movimiento_financiero mf
-          WHERE mf.descripcion LIKE CONCAT('%Donacion #', d.id_donacion, '%')
-      );
-
-    SET v_count = ROW_COUNT();
-    SELECT v_count AS sincronizadas;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrarMovimiento` (IN `p_tipo` VARCHAR(10), IN `p_monto` DECIMAL(12,2), IN `p_descripcion` VARCHAR(255), IN `p_categoria` VARCHAR(60), IN `p_comprobante` VARCHAR(100), IN `p_fecha` DATE, IN `p_id_actividad` INT, IN `p_id_usuario` INT)   BEGIN
@@ -1663,16 +1791,22 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_movimiento_inventario`
     SELECT v_stock_nuevo AS stock_actual;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_salida_donacion` (IN `p_id_donacion` INT, IN `p_id_actividad` INT, IN `p_tipo_salida` VARCHAR(20), IN `p_cantidad` DOUBLE, IN `p_descripcion` TEXT, IN `p_id_item` INT, IN `p_cantidad_item` DOUBLE, IN `p_id_usuario` INT)   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_recurso_campana` (IN `p_id_actividad` INT, IN `p_id_item` INT, IN `p_cantidad_requerida` DOUBLE, IN `p_cantidad_cubierta` DOUBLE, IN `p_unidad` VARCHAR(50), IN `p_estado` VARCHAR(20), IN `p_observaciones` TEXT)   BEGIN
+    INSERT INTO recurso_campana (id_actividad, id_item, cantidad_requerida, cantidad_cubierta, unidad, estado, observaciones)
+    VALUES (p_id_actividad, p_id_item, p_cantidad_requerida, p_cantidad_cubierta, p_unidad, p_estado, p_observaciones);
+    SELECT LAST_INSERT_ID() AS id;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_registrar_salida_donacion` (IN `p_id_donacion` INT, IN `p_id_actividad` INT, IN `p_tipo_salida` VARCHAR(20), IN `p_cantidad` DOUBLE, IN `p_descripcion` TEXT, IN `p_id_item` INT, IN `p_cantidad_item` DOUBLE, IN `p_id_usuario` INT, IN `p_comprobante` VARCHAR(100))   BEGIN
     INSERT INTO salida_donacion (
         id_donacion, id_actividad, tipo_salida, cantidad,
-        descripcion, id_item, cantidad_item, id_usuario_registro, estado
+        descripcion, id_item, cantidad_item, id_usuario_registro, comprobante, estado
     ) VALUES (
         p_id_donacion, p_id_actividad, p_tipo_salida, p_cantidad,
         p_descripcion,
         IF(p_id_item = 0, NULL, p_id_item),
         IF(p_cantidad_item = 0, NULL, p_cantidad_item),
-        p_id_usuario, 'PENDIENTE'
+        p_id_usuario, NULLIF(p_comprobante, ''), 'PENDIENTE'
     );
     SELECT LAST_INSERT_ID() AS id_salida;
 END$$
@@ -1733,18 +1867,29 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_resumenPorCategoria` ()   BEGIN
     ORDER BY total DESC;
 END$$
 
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_donacionesPorCampana` ()   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_sincronizar_donaciones_tesoreria` ()   BEGIN
+    DECLARE v_count INT DEFAULT 0;
+
+    INSERT INTO movimiento_financiero (tipo, monto, descripcion, categoria, comprobante, fecha_movimiento, id_actividad, id_usuario)
     SELECT
-        COALESCE(a.nombre, 'Sin actividad') AS campana,
-        SUM(CASE WHEN d.estado = 'CONFIRMADO' THEN d.cantidad ELSE 0 END) AS monto_confirmado,
-        SUM(CASE WHEN d.estado = 'PENDIENTE'  THEN d.cantidad ELSE 0 END) AS monto_pendiente,
-        COUNT(*) AS total_donaciones
+        'INGRESO',
+        d.cantidad,
+        CONCAT('Donaci??n', IF(d.descripcion IS NOT NULL AND d.descripcion != '', CONCAT(': ', d.descripcion), ''), ' (Donacion #', d.id_donacion, ')'),
+        'Donaciones',
+        CONCAT('BOLETA-', d.id_donacion),
+        CURDATE(),
+        d.id_actividad,
+        d.id_usuario_registro
     FROM donacion d
-    LEFT JOIN actividades a ON d.id_actividad = a.id_actividad
     WHERE d.id_tipo_donacion = 1
-      AND d.estado IN ('CONFIRMADO', 'PENDIENTE')
-    GROUP BY a.nombre
-    ORDER BY monto_confirmado DESC;
+      AND d.estado = 'CONFIRMADO'
+      AND NOT EXISTS (
+          SELECT 1 FROM movimiento_financiero mf
+          WHERE mf.descripcion LIKE CONCAT('%Donacion #', d.id_donacion, '%')
+      );
+
+    SET v_count = ROW_COUNT();
+    SELECT v_count AS sincronizadas;
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_tiene_permiso` (IN `p_id_usuario` INT, IN `p_nombre_permiso` VARCHAR(100) COLLATE utf8mb4_spanish_ci, OUT `p_resultado` TINYINT)   BEGIN
@@ -1789,6 +1934,16 @@ CREATE TABLE `actividades` (
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `actividades`
+--
+
+INSERT INTO `actividades` (`id_actividad`, `nombre`, `descripcion`, `fecha_inicio`, `fecha_fin`, `ubicacion`, `cupo_maximo`, `inscritos`, `estado`, `id_usuario`, `creado_en`) VALUES
+(20, 'Campaña de Limpieza del Río La Leche', 'Actividad ecológica donde voluntarios realizarán la recolección de desechos sólidos y clasificación de residuos en zonas críticas del río.', '2026-03-01', '2026-03-04', 'Ribera del Río La Leche, Chiclayo', 30, 1, 'ACTIVO', 21, '2026-03-01 18:25:09'),
+(21, 'Campaña de Limpieza Comunitaria', 'Jornada de limpieza y recolección de residuos sólidos con apoyo de voluntarios de la comunidad.', '2026-03-01', '2026-03-03', 'Parque Central del distrito', 20, 1, 'ACTIVO', 21, '2026-03-02 02:45:48'),
+(22, 'Campaña Médica Gratuita', 'Atención médica básica gratuita para la población vulnerable con apoyo de personal de salud voluntario.', '2026-03-01', '2026-03-04', 'Centro comunal del distrito', 40, 0, 'ACTIVO', 21, '2026-03-02 03:10:41'),
+(23, 'Taller de Capacitación para Voluntarios', 'Capacitación dirigida a nuevos voluntarios sobre protocolos de apoyo comunitario y manejo de recursos.', '2026-03-02', '2026-03-04', 'Auditorio municipal', 60, 0, 'ACTIVO', 21, '2026-03-02 03:11:41');
+
 -- --------------------------------------------------------
 
 --
@@ -1802,6 +1957,14 @@ CREATE TABLE `actividad_beneficiario` (
   `observacion` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `actividad_beneficiario`
+--
+
+INSERT INTO `actividad_beneficiario` (`id_actividad_beneficiario`, `id_actividad`, `id_beneficiario`, `observacion`) VALUES
+(2, 20, 11, ''),
+(3, 21, 9, '');
+
 -- --------------------------------------------------------
 
 --
@@ -1813,6 +1976,15 @@ CREATE TABLE `actividad_lugar` (
   `id_actividad` int(11) DEFAULT NULL,
   `id_lugar` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `actividad_lugar`
+--
+
+INSERT INTO `actividad_lugar` (`id_actividad_lugar`, `id_actividad`, `id_lugar`) VALUES
+(1, 21, 4),
+(2, 22, 5),
+(3, 23, 6);
 
 -- --------------------------------------------------------
 
@@ -1829,6 +2001,15 @@ CREATE TABLE `actividad_recurso` (
   `prioridad` varchar(20) DEFAULT NULL,
   `observacion` varchar(150) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `actividad_recurso`
+--
+
+INSERT INTO `actividad_recurso` (`id_actividad_recurso`, `id_actividad`, `id_recurso`, `cantidad_requerida`, `cantidad_conseguida`, `prioridad`, `observacion`) VALUES
+(11, 20, 20, 20.00, 10.00, 'ALTA', ''),
+(12, 21, 20, 50.00, 0.00, 'ALTA', ''),
+(13, 21, 24, 30.00, 0.00, 'ALTA', '');
 
 -- --------------------------------------------------------
 
@@ -1851,6 +2032,13 @@ CREATE TABLE `asistencias` (
   `actualizado_en` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `asistencias`
+--
+
+INSERT INTO `asistencias` (`id_asistencia`, `id_voluntario`, `id_actividad`, `fecha`, `hora_entrada`, `hora_salida`, `horas_totales`, `estado`, `observaciones`, `id_usuario_registro`, `creado_en`, `actualizado_en`) VALUES
+(11, 57, 20, '2026-03-01', '07:00:00', '11:00:00', 4.00, 'ASISTIO', NULL, 21, '2026-03-01 22:51:19', '2026-03-01 22:51:19');
+
 -- --------------------------------------------------------
 
 --
@@ -1872,6 +2060,15 @@ CREATE TABLE `beneficiario` (
   `id_usuario` int(11) DEFAULT NULL,
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `beneficiario`
+--
+
+INSERT INTO `beneficiario` (`id_beneficiario`, `estado`, `organizacion`, `direccion`, `distrito`, `necesidad_principal`, `observaciones`, `nombre_responsable`, `apellidos_responsable`, `dni`, `telefono`, `id_usuario`, `creado_en`) VALUES
+(9, 'ACTIVO', 'Asociación Vecinal “Nueva Esperanza”', 'Jr. Los Jazmines 245', 'José Leonardo Ortiz', 'ALIMENTACIÓN', 'Vive con 2 hijos menores. Requiere apoyo mensual de alimentos básicos.', 'VIVIANA', 'FERNANDEZ ALVARADO', '74251836', '965852147', 21, '2026-03-01 19:08:22'),
+(10, 'ACTIVO', 'Asociación Solidaria Nuevo Amanecer', 'Calle Los Olivos 245', 'Chiclayo', 'Alimentos no perecibles y kits de higiene', 'La organización atiende a familias en situación de vulnerabilidad. Requieren apoyo mensual.', 'FRANK DIEGO', 'MONTENEGRO SANCHEZ', '71458521', '987123852', 21, '2026-03-01 19:57:06'),
+(11, 'ACTIVO', 'Campaña de Limpieza del Río La Leche', 'Ribera del Río La Leche, Chiclayo', 'Chiclayo', 'Materiales de limpieza y apoyo logístico', 'Grupo ambiental comunitario dedicado a la conservación del río', 'JOSH NICKSON', 'BARDALES SUAREZ', '71458543', '987456320', 21, '2026-03-01 20:21:29');
 
 -- --------------------------------------------------------
 
@@ -1922,6 +2119,13 @@ CREATE TABLE `certificados` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `certificados`
+--
+
+INSERT INTO `certificados` (`id_certificado`, `codigo_certificado`, `id_voluntario`, `id_actividad`, `horas_voluntariado`, `fecha_emision`, `estado`, `observaciones`, `id_usuario_emite`, `fecha_anulacion`, `motivo_anulacion`, `created_at`, `updated_at`) VALUES
+(7, 'CERT-2026-0001', 57, 20, 4, '2026-03-01', 'EMITIDO', '', 21, NULL, NULL, '2026-03-01 22:51:28', '2026-03-01 22:51:28');
+
 -- --------------------------------------------------------
 
 --
@@ -1943,6 +2147,15 @@ CREATE TABLE `donacion` (
   `motivo_anulacion` varchar(255) DEFAULT NULL,
   `actualizado_en` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `donacion`
+--
+
+INSERT INTO `donacion` (`id_donacion`, `cantidad`, `descripcion`, `id_tipo_donacion`, `subtipo_donacion`, `id_actividad`, `id_usuario_registro`, `registrado_en`, `estado`, `anulado_en`, `id_usuario_anula`, `motivo_anulacion`, `actualizado_en`) VALUES
+(44, 500.00, 'Donación en efectivo para apoyar la Campaña de Limpieza del Río La Leche', 1, 'Yape/Plin', 20, 21, '2026-03-01 17:57:49', 'CONFIRMADO', NULL, NULL, NULL, '2026-03-01 17:57:55'),
+(49, 1200.00, 'Donación para apoyo general de campañas sociales', 1, 'Efectivo', 20, 21, '2026-03-01 21:43:00', 'CONFIRMADO', NULL, NULL, NULL, '2026-03-01 21:43:02'),
+(50, 900.00, ': Donación para compra de materiales de apoyo', 1, 'Yape/Plin', 21, 21, '2026-03-01 21:47:54', 'CONFIRMADO', NULL, NULL, NULL, '2026-03-01 21:47:57');
 
 -- --------------------------------------------------------
 
@@ -1970,6 +2183,14 @@ CREATE TABLE `donacion_donante` (
   `id_donacion` int(11) DEFAULT NULL,
   `id_donante` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `donacion_donante`
+--
+
+INSERT INTO `donacion_donante` (`id_donacion_donante`, `id_donacion`, `id_donante`) VALUES
+(12, 44, 10),
+(13, 50, 11);
 
 -- --------------------------------------------------------
 
@@ -1999,7 +2220,9 @@ INSERT INTO `donante` (`id_donante`, `tipo`, `nombre`, `correo`, `telefono`, `ru
 (5, 'Persona', 'MARICIELO BECERRA GUEVARA', 'maricie@gmail.com', '965741521', NULL, NULL),
 (6, 'Persona', 'HAYDE MARTINEZ CASTILLO', 'hay@gmail.com', '987456321', NULL, NULL),
 (7, 'Persona', 'VANNIA LIZBETH TANTALEAN CHINCHAY', 'vania@gmail.com', '987456325', NULL, NULL),
-(8, 'Empresa', 'ASOCIACION VIDA Y VOLUNTARIADO - VIVOL', 'asociacion@gmail.com', '987456378', '20602952801', NULL);
+(8, 'Empresa', 'ASOCIACION VIDA Y VOLUNTARIADO - VIVOL', 'asociacion@gmail.com', '987456378', '20602952801', NULL),
+(10, 'Persona', 'EDWIN JESUS FLORES VASQUEZ', 'edwin@gmail.com', '987478123', NULL, '71853011'),
+(11, 'Persona', 'SAMUEL ARMANDO OCAMPO LOPEZ', 'samuel@gmail.com', '987852741', NULL, '71854145');
 
 -- --------------------------------------------------------
 
@@ -2017,6 +2240,27 @@ CREATE TABLE `eventos_calendario` (
   `id_usuario` int(11) DEFAULT NULL,
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `eventos_calendario`
+--
+
+INSERT INTO `eventos_calendario` (`id_evento`, `titulo`, `descripcion`, `fecha_inicio`, `fecha_fin`, `color`, `id_usuario`, `creado_en`) VALUES
+(3, 'pago de luz', '', '2026-03-01', '2026-03-01', '#eab308', 21, '2026-03-02 03:02:28');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `gasto_donacion`
+--
+
+CREATE TABLE `gasto_donacion` (
+  `id_gasto_donacion` int(11) NOT NULL,
+  `id_movimiento` int(11) NOT NULL,
+  `id_donacion` int(11) NOT NULL,
+  `monto` decimal(12,2) NOT NULL,
+  `creado_en` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 -- --------------------------------------------------------
 
@@ -2042,7 +2286,32 @@ CREATE TABLE `inventario_item` (
 --
 
 INSERT INTO `inventario_item` (`id_item`, `nombre`, `categoria`, `unidad_medida`, `stock_actual`, `stock_minimo`, `estado`, `observacion`, `creado_en`, `actualizado_en`) VALUES
-(1, 'Arroz Costeño', 'ALIMENTOS', 'kg', 11.00, 90.00, 'ACTIVO', '', '2026-02-14 23:19:51', '2026-02-24 09:28:57');
+(1, 'Arroz Costeño', 'ALIMENTOS', 'kg', 11.00, 90.00, 'ACTIVO', '', '2026-02-14 23:19:51', '2026-02-24 09:28:57'),
+(2, 'Agua mineral 500ml', 'ALIMENTOS', 'Unidad', 120.00, 50.00, 'ACTIVO', 'Botellas de agua para actividades de campo', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(3, 'Galletas integrales', 'ALIMENTOS', 'Paquete', 80.00, 30.00, 'ACTIVO', 'Paquetes individuales para refrigerios', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(4, 'Leche evaporada', 'ALIMENTOS', 'Lata', 45.00, 20.00, 'ACTIVO', 'Latas de 400g para donaciones alimentarias', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(5, 'Frazadas polares', 'ROPA', 'Unidad', 35.00, 15.00, 'ACTIVO', 'Frazadas de polar para campanas de frio', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(6, 'Polos blancos talla M', 'ROPA', 'Unidad', 60.00, 20.00, 'ACTIVO', 'Polos para voluntarios en eventos', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(7, 'Botiquin de primeros auxilios', 'MEDICAMENTOS', 'Unidad', 10.00, 5.00, 'ACTIVO', 'Botiquines completos para brigadas de salud', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(8, 'Alcohol en gel 500ml', 'MEDICAMENTOS', 'Frasco', 50.00, 25.00, 'ACTIVO', 'Frascos de alcohol gel para higiene', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(9, 'Mascarillas descartables', 'MEDICAMENTOS', 'Caja', 30.00, 10.00, 'ACTIVO', 'Cajas de 50 unidades cada una', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(10, 'Carpas 3x3m', 'LOGISTICA', 'Unidad', 8.00, 3.00, 'ACTIVO', 'Carpas plegables para stands en eventos', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(11, 'Sillas plasticas', 'LOGISTICA', 'Unidad', 40.00, 15.00, 'ACTIVO', 'Sillas apilables para actividades comunitarias', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(12, 'Megafono portatil', 'LOGISTICA', 'Unidad', 5.00, 2.00, 'ACTIVO', 'Megafonos con bateria recargable', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(13, 'Cuadernos A4', 'UTILES', 'Unidad', 200.00, 50.00, 'ACTIVO', 'Cuadernos rayados para donaciones escolares', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(14, 'Lapices 2B', 'UTILES', 'Caja', 25.00, 10.00, 'ACTIVO', 'Cajas de 12 lapices para campanas educativas', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(15, 'Colchonetas plegables', 'LOGISTICA', 'Unidad', 15.00, 5.00, 'ACTIVO', 'Colchonetas para albergues temporales', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(16, 'Bolsas de viveres 5kg', 'ALIMENTOS', 'Unidad', 55.00, 20.00, 'ACTIVO', 'Bolsas armadas con arroz, azucar, aceite y fideos', '2026-03-01 21:50:56', '2026-03-01 21:50:56'),
+(17, 'Botellas de agua (500ml)', 'BEBIDAS', 'unidades', 240.00, 80.00, 'ACTIVO', 'Para hidratacion en campanas', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(18, 'Kits de primeros auxilios', 'SALUD', 'unidades', 35.00, 15.00, 'ACTIVO', 'Contiene vendas, alcohol y gasas', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(19, 'Chalecos reflectivos', 'SEGURIDAD', 'unidades', 120.00, 40.00, 'ACTIVO', 'Para uso en trabajo de campo', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(20, 'Guantes de trabajo', 'PROTECCION', 'pares', 300.00, 100.00, 'ACTIVO', 'Talla unica, latex resistente', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(21, 'Linternas recargables', 'EQUIPAMIENTO', 'unidades', 45.00, 20.00, 'ACTIVO', 'Autonomia de 8 horas', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(22, 'Extensiones electricas', 'INFRAESTRUCTURA', 'unidades', 28.00, 10.00, 'ACTIVO', 'Extension 5m con proteccion', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(23, 'Mantas termicas', 'EMERGENCIA', 'unidades', 95.00, 30.00, 'ACTIVO', 'Para zonas de bajas temperaturas', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(24, 'Cuadernos para registro', 'OFICINA', 'unidades', 180.00, 60.00, 'ACTIVO', 'Cuaderno A4, 100 hojas cuadriculado', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(25, 'Radios portatiles', 'COMUNICACION', 'unidades', 22.00, 8.00, 'ACTIVO', 'Frecuencia VHF, bateria incluida', '2026-03-01 08:00:00', '2026-03-01 08:00:00'),
+(26, 'Toldos impermeables 4x6m', 'LOGISTICA', 'unidades', 12.00, 5.00, 'ACTIVO', 'Para cobertura en zonas de lluvia', '2026-03-01 08:00:00', '2026-03-01 08:00:00');
 
 -- --------------------------------------------------------
 
@@ -2086,7 +2355,10 @@ CREATE TABLE `lugar` (
 INSERT INTO `lugar` (`id_lugar`, `departamento`, `provincia`, `distrito`, `direccion_referencia`) VALUES
 (1, 'Lambayeque', 'Chiclayo', 'Pimentel', 'Playa de Pimentel - Zona de dunas costeras norte'),
 (2, 'Lambayeque', 'Chiclayo', 'Pimentel', 'Parque ecologico municipal de Pimentel'),
-(3, 'Lambayeque', 'Chiclayo', 'Pimentel', 'Ribera del rio Lambayeque - Sector Las Rocas');
+(3, 'Lambayeque', 'Chiclayo', 'Pimentel', 'Ribera del rio Lambayeque - Sector Las Rocas'),
+(4, '', '', 'Parque Central del distrito', ''),
+(5, '', '', 'Centro comunal del distrito', ''),
+(6, '', '', 'Auditorio municipal', '');
 
 -- --------------------------------------------------------
 
@@ -2107,6 +2379,23 @@ CREATE TABLE `movimiento_financiero` (
   `creado_en` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `movimiento_financiero`
+--
+
+INSERT INTO `movimiento_financiero` (`id_movimiento`, `tipo`, `monto`, `descripcion`, `categoria`, `comprobante`, `fecha_movimiento`, `id_actividad`, `id_usuario`, `creado_en`) VALUES
+(57, 'INGRESO', 500.00, 'Donaci¾n: Donación en efectivo para apoyar la Campaña de Limpieza del Río La Leche (Donacion #44)', 'Donaciones', 'BOLETA-44', '2026-03-01', 20, 21, '2026-03-01 18:09:57'),
+(59, 'INGRESO', 200.00, 'Donación: Donación económica destinada a la compra de materiales de limpieza y bolsas biodegradables para la campaña. (Donacion #45)', 'Donaciones', 'BOLETA-45', '2026-03-01', 20, 21, '2026-03-01 18:34:22'),
+(60, 'INGRESO', 500.00, 'Donación: donacion  (Donacion #46)', 'Donaciones', 'BOLETA-46', '2026-03-01', 20, 21, '2026-03-01 19:01:12'),
+(61, 'GASTO', 1150.00, 'Compra de impresora modelo EcoTank L3250 para uso administrativo y apoyo en campañas.', 'Equipos / Activos', 'F001-000458', '2026-03-02', 20, 21, '2026-03-01 19:02:43'),
+(62, 'GASTO', 500.00, 'Salida de Donaci¾n #3 (Donaci¾n #44): campa±a de limpieza', 'Salidas de Donaciones', NULL, '2026-03-01', 20, 21, '2026-03-01 19:59:32'),
+(63, 'INGRESO', 1200.00, 'Donación: donaciones (Donacion #48)', 'Donaciones', 'BOLETA-48', '2026-03-01', 20, 21, '2026-03-01 20:01:45'),
+(64, 'INGRESO', 1500.00, 'Donación: donaciones  (Donacion #47)', 'Donaciones', 'BOLETA-47', '2026-03-01', 20, 21, '2026-03-01 21:20:12'),
+(65, 'INGRESO', 1200.00, 'Donación: Donación para apoyo general de campañas sociales (Donacion #49)', 'Donaciones', 'BOLETA-49', '2026-03-01', 20, 21, '2026-03-01 21:43:03'),
+(66, 'INGRESO', 900.00, 'Donación: : Donación para compra de materiales de apoyo (Donacion #50)', 'Donaciones', 'BOLETA-50', '2026-03-01', 21, 21, '2026-03-01 21:47:57'),
+(67, 'GASTO', 600.00, 'Salida de Donación #4 (Donación #50): campaña de limpieza', 'Salidas de Donaciones', NULL, '2026-03-01', 21, 21, '2026-03-01 21:48:51'),
+(68, 'GASTO', 300.00, 'Salida de Donación #5 (Donación #49): campaña de limpieza', 'Salidas de Donaciones', NULL, '2026-03-01', 21, 21, '2026-03-01 21:48:55');
+
 -- --------------------------------------------------------
 
 --
@@ -2126,6 +2415,13 @@ CREATE TABLE `notificaciones` (
   `fecha_creacion` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Volcado de datos para la tabla `notificaciones`
+--
+
+INSERT INTO `notificaciones` (`id_notificacion`, `id_usuario`, `tipo`, `titulo`, `mensaje`, `icono`, `color`, `leida`, `referencia_id`, `fecha_creacion`) VALUES
+(11, 29, 'ACTIVIDAD_HOY', '📋 Actividad hoy: Campaña de Limpieza del Río La Leche', 'La actividad \"Campaña de Limpieza del Río La Leche\" está programada para hoy en Ribera del Río La Leche, Chiclayo.', 'fa-calendar-check', '#10b981', 0, 20, '2026-03-01 14:58:20');
+
 -- --------------------------------------------------------
 
 --
@@ -2138,6 +2434,14 @@ CREATE TABLE `participacion` (
   `id_actividad` int(11) DEFAULT NULL,
   `id_rol_actividad` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `participacion`
+--
+
+INSERT INTO `participacion` (`id_participacion`, `id_voluntario`, `id_actividad`, `id_rol_actividad`) VALUES
+(17, 57, 20, NULL),
+(18, 56, 21, NULL);
 
 -- --------------------------------------------------------
 
@@ -2169,7 +2473,7 @@ INSERT INTO `permiso` (`id_permiso`, `nombre_permiso`, `descripcion`) VALUES
 (11, 'reportes.ver', 'Ver reportes del sistema'),
 (12, 'salidas_donaciones.ver', 'Gestionar salidas de donaciones'),
 (13, 'salidas_inventario.ver', 'Gestionar salidas de inventario'),
-(14, 'recursos_campana.ver', 'Gestionar stock de recursos por campaña');
+(14, 'recursos_campana.ver', 'Gestionar stock de recursos por campa?a');
 
 -- --------------------------------------------------------
 
@@ -2190,25 +2494,36 @@ CREATE TABLE `recurso` (
 -- Volcado de datos para la tabla `recurso`
 --
 
-INSERT INTO `recurso` (`id_recurso`, `nombre`, `unidad_medida`, `tipo_recurso`, `descripcion`) VALUES
-(1, 'Plantones de Algarrobo', 'unidad', 'MATERIAL', 'Plantones de algarrobo para reforestar'),
-(2, 'Plantones de Hualtaco', 'unidad', 'MATERIAL', 'Plantones de hualtaco nativo'),
-(3, 'Palas de jardineria', 'unidad', 'EQUIPO', 'Palas para cavar hoyos de siembra'),
-(4, 'Agua para riego', 'litro', 'MATERIAL', 'Agua potable para riego inicial de plantones'),
-(5, 'Guantes de trabajo', 'par', 'EQUIPO', 'Guantes de proteccion para voluntarios'),
-(6, 'Abono organico', 'kg', 'MATERIAL', 'Abono organico para nutrir la tierra'),
-(7, 'Plantones de Algarrobo', 'unidad', 'MATERIAL', 'Plantones de algarrobo'),
-(8, 'Plantones de Algarrobo', 'unidad', 'MATERIAL', 'Plantones de algarrobo'),
-(9, 'Plantones de Hualtaco', 'unidad', 'MATERIAL', 'Arboles nativos'),
-(10, 'Palas de jardineria', 'unidad', 'EQUIPO', 'Palas para cavar'),
-(11, 'Agua para riego', 'litro', 'MATERIAL', 'Agua para riego inicial'),
-(12, 'Guantes de trabajo', 'par', 'EQUIPO', 'Guantes de proteccion'),
-(13, 'Abono organico', 'kg', 'MATERIAL', 'Abono para nutrir la tierra'),
-(14, 'Plantones de Hualtaco', 'unidad', 'MATERIAL', 'Arboles nativos'),
-(15, 'Palas de jardineria', 'unidad', 'EQUIPO', 'Palas para cavar'),
-(16, 'Agua para riego', 'litro', 'MATERIAL', 'Agua para riego inicial'),
-(17, 'Guantes de trabajo', 'par', 'EQUIPO', 'Guantes de proteccion'),
-(18, 'Abono organico', 'kg', 'MATERIAL', 'Abono para nutrir tierra');
+INSERT INTO `recurso` (`id_recurso`, `nombre`, `unidad_medida`, `tipo_recurso`, `descripcion`, `cantidad_total`) VALUES
+(20, 'Bolsas de basura resistentes', 'Unidad', 'Material', 'Bolsas grandes para recolección de residuos en campañas de limpieza', 200),
+(21, 'Botellas de agua (500ml)', 'unidad', 'MATERIAL', 'Para hidratacion de voluntarios en campo', 240),
+(22, 'Kits de primeros auxilios', 'unidad', 'EQUIPO', 'Contiene vendas, alcohol, gasas y tijeras', 35),
+(23, 'Chalecos reflectivos', 'unidad', 'EQUIPO', 'Para identificacion y seguridad en campo', 120),
+(24, 'Guantes de proteccion', 'par', 'EQUIPO', 'Guantes resistentes para trabajo de campo', 300),
+(25, 'Linternas recargables', 'unidad', 'EQUIPO', 'Autonomia de 8 horas, incluye cable USB', 45),
+(26, 'Extensiones electricas 5m', 'unidad', 'EQUIPO', 'Extension con proteccion contra sobrecarga', 28),
+(27, 'Mantas termicas', 'unidad', 'MATERIAL', 'Para zonas de emergencia y bajas temperaturas', 95),
+(28, 'Cuadernos de registro A4', 'unidad', 'MATERIAL', 'Cuaderno 100 hojas cuadriculado para informes', 180),
+(29, 'Radios portatiles VHF', 'unidad', 'EQUIPO', 'Comunicacion en campo, bateria incluida', 22),
+(30, 'Toldos impermeables 4x6m', 'unidad', 'EQUIPO', 'Cobertura en zonas de lluvia y emergencia', 12);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `recurso_campana`
+--
+
+CREATE TABLE `recurso_campana` (
+  `id_recurso_campana` int(11) NOT NULL,
+  `id_actividad` int(11) NOT NULL,
+  `id_item` int(11) NOT NULL,
+  `cantidad_requerida` double NOT NULL DEFAULT 0,
+  `cantidad_cubierta` double NOT NULL DEFAULT 0,
+  `unidad` varchar(50) DEFAULT 'Unidad',
+  `estado` varchar(20) DEFAULT 'PENDIENTE',
+  `observaciones` text DEFAULT NULL,
+  `fecha_registro` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -2286,6 +2601,15 @@ CREATE TABLE `salida_donacion` (
   `motivo_anulacion` varchar(250) DEFAULT NULL,
   `actualizado_en` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `salida_donacion`
+--
+
+INSERT INTO `salida_donacion` (`id_salida`, `id_donacion`, `id_actividad`, `tipo_salida`, `cantidad`, `descripcion`, `id_item`, `cantidad_item`, `id_usuario_registro`, `registrado_en`, `estado`, `anulado_en`, `id_usuario_anula`, `motivo_anulacion`, `actualizado_en`) VALUES
+(3, 44, 20, 'DINERO', 500, 'campaña de limpieza', NULL, NULL, 21, '2026-03-01 19:45:17', 'CONFIRMADO', NULL, NULL, NULL, '2026-03-01 19:50:02'),
+(4, 50, 21, 'DINERO', 600, 'campaña de limpieza', NULL, NULL, 21, '2026-03-01 21:48:43', 'CONFIRMADO', NULL, NULL, NULL, '2026-03-01 21:48:51'),
+(5, 49, 21, 'DINERO', 300, 'campaña de limpieza', NULL, NULL, 21, '2026-03-01 21:48:43', 'CONFIRMADO', NULL, NULL, NULL, '2026-03-01 21:48:55');
 
 -- --------------------------------------------------------
 
@@ -2367,7 +2691,8 @@ CREATE TABLE `usuario` (
 --
 
 INSERT INTO `usuario` (`id_usuario`, `nombres`, `apellidos`, `correo`, `username`, `dni`, `password_hash`, `foto_perfil`, `estado`, `creado_en`, `actualizado_en`, `intentos_fallidos`, `bloqueado_hasta`) VALUES
-(21, 'luis', 'goerdy', 'tchi@gamil.com', 'geordy', NULL, '$2a$10$gF/BXO.egDt/oEeSSZMzMu7IE5VWf9BmvIateoBiud8OiUNSPqFie', 'img/perfil_21.webp', 'ACTIVO', '2026-02-04 01:41:12', '2026-02-12 00:26:32', 0, NULL);
+(21, 'luis', 'goerdy', 'tchi@gamil.com', 'geordy', NULL, '$2a$10$gF/BXO.egDt/oEeSSZMzMu7IE5VWf9BmvIateoBiud8OiUNSPqFie', 'img/perfil_21.webp', 'ACTIVO', '2026-02-04 01:41:12', '2026-02-12 00:26:32', 0, NULL),
+(29, 'FRANS ELISEO', 'PEREA POQUIS', 'frans@gmail.com', 'frans', '74852547', '$2a$10$Os7DG9qDHf/jDDHihGUOz.ujXgD09lJtC6GOLjqZldGIBF3kQTWAy', NULL, 'ACTIVO', '2026-03-01 14:58:07', NULL, 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -2396,7 +2721,14 @@ INSERT INTO `usuario_permiso` (`id_usuario_permiso`, `id_usuario`, `id_permiso`)
 (77, 21, 8),
 (78, 21, 9),
 (79, 21, 10),
-(80, 21, 11);
+(80, 21, 11),
+(88, 21, 12),
+(89, 21, 13),
+(90, 21, 14),
+(81, 29, 3),
+(82, 29, 4),
+(83, 29, 7),
+(84, 29, 8);
 
 -- --------------------------------------------------------
 
@@ -2431,6 +2763,15 @@ CREATE TABLE `voluntario` (
   `id_usuario` int(11) DEFAULT NULL,
   `id_rol_actividad` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `voluntario`
+--
+
+INSERT INTO `voluntario` (`id_voluntario`, `nombres`, `apellidos`, `dni`, `correo`, `telefono`, `carrera`, `cargo`, `acceso_sistema`, `estado`, `id_usuario`, `id_rol_actividad`) VALUES
+(52, 'DELINA LINDA', 'VISITACION MORALES', '71853622', 'delina@gmail.com', '965741456', 'contadora', 'Voluntario', 0, 'ACTIVO', NULL, NULL),
+(56, 'FRANS ELISEO', 'PEREA POQUIS', '74852547', 'frans@gmail.com', '987417852', 'Ingeneria civil', 'Coordinador', 1, 'ACTIVO', 29, NULL),
+(57, 'JHONEIL ALEXANDER', 'FLORES PEREZ', '71852255', 'johoneil@gmail.com', '987417123', 'tecnico en computacion', 'Voluntario', 0, 'ACTIVO', NULL, NULL);
 
 --
 -- Índices para tablas volcadas
@@ -2544,6 +2885,14 @@ ALTER TABLE `eventos_calendario`
   ADD KEY `fk_evento_usuario` (`id_usuario`);
 
 --
+-- Indices de la tabla `gasto_donacion`
+--
+ALTER TABLE `gasto_donacion`
+  ADD PRIMARY KEY (`id_gasto_donacion`),
+  ADD KEY `id_movimiento` (`id_movimiento`),
+  ADD KEY `id_donacion` (`id_donacion`);
+
+--
 -- Indices de la tabla `inventario_item`
 --
 ALTER TABLE `inventario_item`
@@ -2603,6 +2952,14 @@ ALTER TABLE `permiso`
 --
 ALTER TABLE `recurso`
   ADD PRIMARY KEY (`id_recurso`);
+
+--
+-- Indices de la tabla `recurso_campana`
+--
+ALTER TABLE `recurso_campana`
+  ADD PRIMARY KEY (`id_recurso_campana`),
+  ADD KEY `fk_rc_actividad` (`id_actividad`),
+  ADD KEY `fk_rc_item` (`id_item`);
 
 --
 -- Indices de la tabla `rol_actividad`
@@ -2687,37 +3044,37 @@ ALTER TABLE `voluntario`
 -- AUTO_INCREMENT de la tabla `actividades`
 --
 ALTER TABLE `actividades`
-  MODIFY `id_actividad` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id_actividad` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT de la tabla `actividad_beneficiario`
 --
 ALTER TABLE `actividad_beneficiario`
-  MODIFY `id_actividad_beneficiario` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_actividad_beneficiario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `actividad_lugar`
 --
 ALTER TABLE `actividad_lugar`
-  MODIFY `id_actividad_lugar` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_actividad_lugar` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `actividad_recurso`
 --
 ALTER TABLE `actividad_recurso`
-  MODIFY `id_actividad_recurso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id_actividad_recurso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de la tabla `asistencias`
 --
 ALTER TABLE `asistencias`
-  MODIFY `id_asistencia` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id_asistencia` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de la tabla `beneficiario`
 --
 ALTER TABLE `beneficiario`
-  MODIFY `id_beneficiario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_beneficiario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de la tabla `categoria_inventario`
@@ -2729,13 +3086,13 @@ ALTER TABLE `categoria_inventario`
 -- AUTO_INCREMENT de la tabla `certificados`
 --
 ALTER TABLE `certificados`
-  MODIFY `id_certificado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id_certificado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT de la tabla `donacion`
 --
 ALTER TABLE `donacion`
-  MODIFY `id_donacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id_donacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT de la tabla `donacion_detalle`
@@ -2747,25 +3104,31 @@ ALTER TABLE `donacion_detalle`
 -- AUTO_INCREMENT de la tabla `donacion_donante`
 --
 ALTER TABLE `donacion_donante`
-  MODIFY `id_donacion_donante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id_donacion_donante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de la tabla `donante`
 --
 ALTER TABLE `donante`
-  MODIFY `id_donante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id_donante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT de la tabla `eventos_calendario`
 --
 ALTER TABLE `eventos_calendario`
-  MODIFY `id_evento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_evento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT de la tabla `gasto_donacion`
+--
+ALTER TABLE `gasto_donacion`
+  MODIFY `id_gasto_donacion` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `inventario_item`
 --
 ALTER TABLE `inventario_item`
-  MODIFY `id_item` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_item` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT de la tabla `inventario_movimiento`
@@ -2777,25 +3140,25 @@ ALTER TABLE `inventario_movimiento`
 -- AUTO_INCREMENT de la tabla `lugar`
 --
 ALTER TABLE `lugar`
-  MODIFY `id_lugar` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_lugar` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `movimiento_financiero`
 --
 ALTER TABLE `movimiento_financiero`
-  MODIFY `id_movimiento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `id_movimiento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id_notificacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id_notificacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT de la tabla `participacion`
 --
 ALTER TABLE `participacion`
-  MODIFY `id_participacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id_participacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT de la tabla `permiso`
@@ -2807,7 +3170,13 @@ ALTER TABLE `permiso`
 -- AUTO_INCREMENT de la tabla `recurso`
 --
 ALTER TABLE `recurso`
-  MODIFY `id_recurso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id_recurso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+
+--
+-- AUTO_INCREMENT de la tabla `recurso_campana`
+--
+ALTER TABLE `recurso_campana`
+  MODIFY `id_recurso_campana` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `rol_actividad`
@@ -2825,7 +3194,7 @@ ALTER TABLE `rol_sistema`
 -- AUTO_INCREMENT de la tabla `salida_donacion`
 --
 ALTER TABLE `salida_donacion`
-  MODIFY `id_salida` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_salida` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `salida_inventario`
@@ -2849,13 +3218,13 @@ ALTER TABLE `tipo_donacion`
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario_permiso`
 --
 ALTER TABLE `usuario_permiso`
-  MODIFY `id_usuario_permiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
+  MODIFY `id_usuario_permiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=91;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario_rol`
@@ -2867,7 +3236,7 @@ ALTER TABLE `usuario_rol`
 -- AUTO_INCREMENT de la tabla `voluntario`
 --
 ALTER TABLE `voluntario`
-  MODIFY `id_voluntario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `id_voluntario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
 
 --
 -- Restricciones para tablas volcadas
@@ -2946,6 +3315,13 @@ ALTER TABLE `eventos_calendario`
   ADD CONSTRAINT `fk_evento_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuario` (`id_usuario`) ON DELETE SET NULL;
 
 --
+-- Filtros para la tabla `gasto_donacion`
+--
+ALTER TABLE `gasto_donacion`
+  ADD CONSTRAINT `gasto_donacion_ibfk_1` FOREIGN KEY (`id_movimiento`) REFERENCES `movimiento_financiero` (`id_movimiento`) ON DELETE CASCADE,
+  ADD CONSTRAINT `gasto_donacion_ibfk_2` FOREIGN KEY (`id_donacion`) REFERENCES `donacion` (`id_donacion`);
+
+--
 -- Filtros para la tabla `inventario_movimiento`
 --
 ALTER TABLE `inventario_movimiento`
@@ -2972,6 +3348,13 @@ ALTER TABLE `participacion`
   ADD CONSTRAINT `participacion_ibfk_1` FOREIGN KEY (`id_voluntario`) REFERENCES `voluntario` (`id_voluntario`),
   ADD CONSTRAINT `participacion_ibfk_2` FOREIGN KEY (`id_actividad`) REFERENCES `actividades` (`id_actividad`),
   ADD CONSTRAINT `participacion_ibfk_3` FOREIGN KEY (`id_rol_actividad`) REFERENCES `rol_actividad` (`id_rol_actividad`);
+
+--
+-- Filtros para la tabla `recurso_campana`
+--
+ALTER TABLE `recurso_campana`
+  ADD CONSTRAINT `fk_rc_actividad` FOREIGN KEY (`id_actividad`) REFERENCES `actividades` (`id_actividad`),
+  ADD CONSTRAINT `fk_rc_item` FOREIGN KEY (`id_item`) REFERENCES `inventario_item` (`id_item`);
 
 --
 -- Filtros para la tabla `salida_donacion`

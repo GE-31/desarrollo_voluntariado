@@ -35,7 +35,7 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
                     "CONCAT(u.nombres, ' ', u.apellidos) AS usuario_registro, " +
                     "ii.nombre AS item_nombre, ii.unidad_medida AS item_unidad_medida, " +
                     "COALESCE(dn.nombre, 'ANONIMO') AS donante_nombre, " +
-                    "s.motivo_anulacion, s.anulado_en, d.descripcion AS donacion_descripcion " +
+                    "s.motivo_anulacion, s.anulado_en, d.descripcion AS donacion_descripcion, s.comprobante " +
                     "FROM salida_donacion s " +
                     "INNER JOIN donacion d ON d.id_donacion = s.id_donacion " +
                     "INNER JOIN tipo_donacion td ON td.id_tipo_donacion = d.id_tipo_donacion " +
@@ -60,7 +60,24 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
     @SuppressWarnings("unchecked")
     public SalidaDonacion obtenerPorId(int id) {
         try {
-            List<Object[]> rows = em.createNativeQuery("CALL sp_obtener_salida_donacion(?1)")
+            List<Object[]> rows = em.createNativeQuery(
+                    "SELECT s.id_salida, s.id_donacion, s.id_actividad, s.tipo_salida, s.cantidad, s.descripcion, " +
+                    "s.id_item, s.cantidad_item, s.id_usuario_registro, s.registrado_en, s.estado, " +
+                    "d.cantidad AS donacion_cantidad, td.nombre AS tipo_donacion_nombre, " +
+                    "a.nombre AS actividad_nombre, " +
+                    "CONCAT(u.nombres, ' ', u.apellidos) AS usuario_registro, " +
+                    "ii.nombre AS item_nombre, ii.unidad_medida AS item_unidad_medida, " +
+                    "COALESCE(dn.nombre, 'ANONIMO') AS donante_nombre, " +
+                    "s.motivo_anulacion, s.anulado_en, d.descripcion AS donacion_descripcion, s.comprobante " +
+                    "FROM salida_donacion s " +
+                    "INNER JOIN donacion d ON d.id_donacion = s.id_donacion " +
+                    "INNER JOIN tipo_donacion td ON td.id_tipo_donacion = d.id_tipo_donacion " +
+                    "INNER JOIN actividades a ON a.id_actividad = s.id_actividad " +
+                    "INNER JOIN usuario u ON u.id_usuario = s.id_usuario_registro " +
+                    "LEFT JOIN inventario_item ii ON ii.id_item = s.id_item " +
+                    "LEFT JOIN donacion_donante dd ON dd.id_donacion = d.id_donacion " +
+                    "LEFT JOIN donante dn ON dn.id_donante = dd.id_donante " +
+                    "WHERE s.id_salida = ?1 LIMIT 1")
                     .setParameter(1, id)
                     .getResultList();
             return rows.isEmpty() ? null : mapear(rows.get(0));
@@ -77,9 +94,14 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
             Integer idItem = s.getIdItem() != null ? s.getIdItem() : 0;
             Double cantidadItem = s.getCantidadItem() != null ? s.getCantidadItem() : 0.0;
             String descripcion = s.getDescripcion() != null ? s.getDescripcion() : "";
+            String comprobante = (s.getComprobante() != null && !s.getComprobante().trim().isEmpty())
+                    ? s.getComprobante().trim() : null;
 
-            List<?> result = em.createNativeQuery(
-                    "CALL sp_registrar_salida_donacion(?1,?2,?3,?4,?5,?6,?7,?8)")
+            em.createNativeQuery(
+                    "INSERT INTO salida_donacion " +
+                    "(id_donacion, id_actividad, tipo_salida, cantidad, descripcion, " +
+                    "id_item, cantidad_item, id_usuario_registro, comprobante, estado) " +
+                    "VALUES (?1, ?2, ?3, ?4, ?5, NULLIF(?6, 0), NULLIF(?7, 0.0), ?8, ?9, 'PENDIENTE')")
                     .setParameter(1, s.getIdDonacion())
                     .setParameter(2, s.getIdActividad())
                     .setParameter(3, s.getTipoSalida())
@@ -88,12 +110,11 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
                     .setParameter(6, idItem)
                     .setParameter(7, cantidadItem)
                     .setParameter(8, s.getIdUsuarioRegistro())
-                    .getResultList();
-            if (!result.isEmpty()) {
-                Number idGenerado = (Number) result.get(0);
-                s.setIdSalida(idGenerado.intValue());
-            }
-            logger.info("âœ“ Salida de donacion registrada con ID: " + s.getIdSalida());
+                    .setParameter(9, comprobante)
+                    .executeUpdate();
+            Number idGenerado = (Number) em.createNativeQuery("SELECT LAST_INSERT_ID()").getSingleResult();
+            s.setIdSalida(idGenerado.intValue());
+            logger.info("Salida de donacion registrada con ID: " + s.getIdSalida());
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al guardar salida de donacion", e);
@@ -107,14 +128,22 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
             Integer idItem = s.getIdItem() != null ? s.getIdItem() : 0;
             Double cantidadItem = s.getCantidadItem() != null ? s.getCantidadItem() : 0.0;
             String descripcion = s.getDescripcion() != null ? s.getDescripcion() : "";
+            String comprobante = (s.getComprobante() != null && !s.getComprobante().trim().isEmpty())
+                    ? s.getComprobante().trim() : null;
 
-            em.createNativeQuery("CALL sp_actualizar_salida_donacion(?1,?2,?3,?4,?5,?6)")
+            em.createNativeQuery(
+                    "UPDATE salida_donacion " +
+                    "SET id_actividad = ?2, cantidad = ?3, descripcion = ?4, " +
+                    "id_item = NULLIF(?5, 0), cantidad_item = NULLIF(?6, 0.0), " +
+                    "comprobante = ?7, actualizado_en = NOW() " +
+                    "WHERE id_salida = ?1 AND estado = 'PENDIENTE'")
                     .setParameter(1, s.getIdSalida())
                     .setParameter(2, s.getIdActividad())
                     .setParameter(3, s.getCantidad())
                     .setParameter(4, descripcion)
                     .setParameter(5, idItem)
                     .setParameter(6, cantidadItem)
+                    .setParameter(7, comprobante)
                     .executeUpdate();
             logger.info("âœ“ Salida de donacion actualizada ID: " + s.getIdSalida());
             return true;
@@ -143,11 +172,12 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
     @Override
     public boolean cambiarEstado(int id, String estado) {
         try {
-            Object result = em.createNativeQuery("CALL sp_cambiar_estado_salida(?1, ?2)")
+            int updated = em.createNativeQuery(
+                    "UPDATE salida_donacion SET estado = ?2, actualizado_en = NOW() WHERE id_salida = ?1")
                     .setParameter(1, id)
                     .setParameter(2, estado)
-                    .getSingleResult();
-            return ((Number) result).intValue() > 0;
+                    .executeUpdate();
+            return updated > 0;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al cambiar estado de salida", e);
             return false;
@@ -205,6 +235,7 @@ public class SalidaDonacionRepositoryImpl implements SalidaDonacionRepositoryCus
         s.setMotivoAnulacion(limpiarTexto(row[18], null));
         s.setAnuladoEn(limpiarTexto(row[19], null));
         s.setDonacionDescripcion(limpiarTexto(row[20], null));
+        s.setComprobante(row.length > 21 && row[21] != null ? row[21].toString().trim() : null);
         return s;
     }
 

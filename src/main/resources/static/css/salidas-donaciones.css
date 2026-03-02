@@ -299,6 +299,20 @@
     overflow: hidden;
 }
 
+.comprobante-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.82rem;
+    color: #1e40af;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
 /* ======================= BADGES DE ESTADO ======================= */
 .badge {
     padding: 4px 12px;

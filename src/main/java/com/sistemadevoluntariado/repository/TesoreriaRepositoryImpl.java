@@ -38,14 +38,27 @@ public class TesoreriaRepositoryImpl implements TesoreriaRepositoryCustom {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Map<String, Double> obtenerBalance() {
         try {
-            Object[] row = (Object[]) em.createNativeQuery("CALL sp_obtenerBalance()")
-                    .getSingleResult();
+            List<Object[]> rows = em.createNativeQuery(
+                    "SELECT " +
+                    "IFNULL(SUM(CASE WHEN tipo = 'INGRESO' THEN monto ELSE 0 END), 0) AS total_ingresos, " +
+                    "IFNULL(SUM(CASE WHEN tipo = 'GASTO'   THEN monto ELSE 0 END), 0) AS total_gastos, " +
+                    "IFNULL(SUM(CASE WHEN tipo = 'INGRESO' THEN monto ELSE -monto END), 0) AS saldo " +
+                    "FROM movimiento_financiero")
+                    .getResultList();
             Map<String, Double> balance = new HashMap<>();
-            balance.put("ingresos", ((Number) row[0]).doubleValue());
-            balance.put("gastos", ((Number) row[1]).doubleValue());
-            balance.put("saldo", ((Number) row[2]).doubleValue());
+            if (!rows.isEmpty()) {
+                Object[] row = rows.get(0);
+                balance.put("ingresos", row[0] != null ? ((Number) row[0]).doubleValue() : 0.0);
+                balance.put("gastos",   row[1] != null ? ((Number) row[1]).doubleValue() : 0.0);
+                balance.put("saldo",    row[2] != null ? ((Number) row[2]).doubleValue() : 0.0);
+            } else {
+                balance.put("ingresos", 0.0);
+                balance.put("gastos", 0.0);
+                balance.put("saldo", 0.0);
+            }
             return balance;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error al obtener balance", e);

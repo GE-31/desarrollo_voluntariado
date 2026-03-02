@@ -290,9 +290,14 @@ public class SalidaDonacionController {
                                              HttpSession session) {
         Usuario user = (Usuario) session.getAttribute("usuarioLogeado");
         if (user == null) return Map.of("ok", false, "message", "No autorizado");
-        String error = salidaService.cambiarEstado(idSalida, estado);
-        if (error != null) return Map.of("ok", false, "message", error);
-        return Map.of("ok", true, "message", "Estado actualizado");
+        try {
+            String error = salidaService.cambiarEstado(idSalida, estado);
+            if (error != null) return Map.of("ok", false, "message", error);
+            return Map.of("ok", true, "message", "Estado actualizado");
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error inesperado al cambiar estado de salida #" + idSalida, e);
+            return Map.of("ok", false, "message", "Error inesperado: " + e.getMessage());
+        }
     }
 
     private String trim(String value) {

@@ -316,6 +316,18 @@ public class ReportesController {
         }
     }
 
+    @GetMapping(params = "accion=exportar_donaciones")
+    public void exportarDonaciones(HttpServletResponse response) throws IOException {
+        setExcelResponse(response, "Donaciones_" + LocalDate.now() + ".xlsx");
+        try (Workbook wb = new XSSFWorkbook()) {
+            CellStyle[] estilos = crearEstilosBase(wb);
+            CellStyle moneyStyle = wb.createCellStyle();
+            moneyStyle.setDataFormat(wb.createDataFormat().getFormat("#,##0.00"));
+            crearHojaDonaciones(wb, estilos[0], estilos[1], estilos[2], moneyStyle);
+            wb.write(response.getOutputStream());
+        }
+    }
+
     @GetMapping(params = "accion=exportar_tesoreria")
     public void exportarTesoreria(HttpServletResponse response) throws IOException {
         setExcelResponse(response, "Tesoreria_" + LocalDate.now() + ".xlsx");

@@ -79,6 +79,7 @@ public class SalidaDonacionService {
 
     /**
      * Cambia el estado de una salida. Retorna null si éxito, o un mensaje de error.
+     * Cuando el estado es CONFIRMADO, genera automáticamente el número de boleta.
      */
     @Transactional
     public String cambiarEstado(int id, String estado) {
@@ -102,6 +103,31 @@ public class SalidaDonacionService {
             if (!ok) return "No se pudo actualizar el estado";
 
             if ("CONFIRMADO".equalsIgnoreCase(estado)) {
+                // Generar número de boleta automático
+                try {
+                    Number maxNum = (Number) em.createNativeQuery(
+                            "SELECT COALESCE(MAX(CAST(SUBSTRING(comprobante, 6) AS UNSIGNED)), 0) " +
+                            "FROM salida_donacion WHERE comprobante LIKE 'B001-%'")
+                            .getSingleResult();
+                    long siguiente = maxNum.longValue() + 1;
+                    String boleta = String.format("B001-%08d", siguiente);
+                    em.createNativeQuery(
+                            "UPDATE salida_donacion SET comprobante = ?1 WHERE id_salida = ?2")
+                            .setParameter(1, boleta)
+                            .setParameter(2, id)
+                            .executeUpdate();
+                    // Actualizar también el comprobante en tesorería si ya existe el movimiento
+                    em.createNativeQuery(
+                            "UPDATE movimiento_financiero SET comprobante = ?1 " +
+                            "WHERE categoria = 'Salidas de Donaciones' " +
+                            "AND descripcion LIKE ?2")
+                            .setParameter(1, boleta)
+                            .setParameter(2, "Salida de Donación #" + id + "%")
+                            .executeUpdate();
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "No se pudo generar boleta para salida #" + id, e);
+                }
+
                 SalidaDonacion salida = salidaDonacionRepository.obtenerPorId(id);
                 if (salida != null && "DINERO".equalsIgnoreCase(salida.getTipoSalida())) {
                     registrarGastoTesoreria(salida);
@@ -116,33 +142,43 @@ public class SalidaDonacionService {
 
     /**
      * Registra un GASTO en tesorería cuando se confirma una salida de donación tipo DINERO.
+     * Usa SQL directo para evitar problemas con stored procedures en transacciones Hibernate.
      */
+    @SuppressWarnings("unchecked")
     private void registrarGastoTesoreria(SalidaDonacion salida) {
         try {
-            String descripcion = "Salida de Donación #" + salida.getIdSalida()
+            String descripcionBase = "Salida de Donación #" + salida.getIdSalida();
+            String descripcion = descripcionBase
                     + " (Donación #" + salida.getIdDonacion() + ")"
                     + (salida.getDescripcion() != null && !salida.getDescripcion().isEmpty()
                     ? ": " + salida.getDescripcion() : "");
 
-            // Verificar que no exista ya un movimiento para esta salida
-            List<MovimientoFinanciero> existentes = tesoreriaRepository.filtrar(
-                    "GASTO", "Salidas de Donaciones", null, null, "Salida de Donación #" + salida.getIdSalida());
+            // Verificar que no exista ya un movimiento para esta salida usando SQL directo
+            List<?> existentes = em.createNativeQuery(
+                    "SELECT id_movimiento FROM movimiento_financiero " +
+                    "WHERE tipo = 'GASTO' AND categoria = 'Salidas de Donaciones' " +
+                    "AND descripcion LIKE ?1 LIMIT 1")
+                    .setParameter(1, descripcionBase + "%")
+                    .getResultList();
             if (!existentes.isEmpty()) {
                 logger.info("Ya existe movimiento en tesorería para salida #" + salida.getIdSalida());
                 return;
             }
 
-            em.createNativeQuery("CALL sp_registrarMovimiento(?1,?2,?3,?4,?5,?6,?7,?8)")
+            // Insertar gasto directamente sin SP para evitar conflictos de transacción
+            em.createNativeQuery(
+                    "INSERT INTO movimiento_financiero " +
+                    "(tipo, monto, descripcion, categoria, comprobante, fecha_movimiento, id_actividad, id_usuario) " +
+                    "VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULLIF(?7, 0), ?8)")
                     .setParameter(1, "GASTO")
                     .setParameter(2, salida.getCantidad())
                     .setParameter(3, descripcion)
                     .setParameter(4, "Salidas de Donaciones")
-                    .setParameter(5, (String) null) // comprobante
+                    .setParameter(5, salida.getComprobante())
                     .setParameter(6, java.time.LocalDate.now())
                     .setParameter(7, salida.getIdActividad())
                     .setParameter(8, salida.getIdUsuarioRegistro())
-                    .getResultList();
-            em.clear();
+                    .executeUpdate();
             logger.info("✓ Gasto registrado en tesorería para salida #" + salida.getIdSalida());
         } catch (Exception e) {
             logger.log(Level.WARNING, "Error al registrar gasto en tesorería para salida #" + salida.getIdSalida(), e);

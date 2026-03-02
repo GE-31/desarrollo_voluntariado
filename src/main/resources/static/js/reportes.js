@@ -47,7 +47,7 @@ const EXPORT_MAP = {
     actividades: 'exportar_actividades',
     asistencias: 'exportar_asistencias',
     beneficiarios: 'exportar_beneficiarios',
-    donaciones: 'donaciones',  // legacy endpoint
+    donaciones: 'exportar_donaciones',
     inventario: 'exportar_inventario',
     tesoreria: 'exportar_tesoreria'
 };
@@ -62,6 +62,24 @@ const FETCH_MAP = {
     inventario: 'inventario',
     tesoreria: 'tesoreria'
 };
+
+// Etiquetas legibles por módulo
+const MODULO_LABEL = {
+    voluntarios:   '👥 Voluntarios',
+    actividades:   '📋 Actividades',
+    asistencias:   '✅ Asistencias',
+    beneficiarios: '🤝 Beneficiarios',
+    donaciones:    '💰 Donaciones',
+    inventario:    '📦 Inventario',
+    tesoreria:     '🏦 Tesorería'
+};
+
+function actualizarBtnExport(modulo) {
+    const label = document.getElementById('btnExportActivoLabel');
+    if (label) label.textContent = 'Exportar ' + (MODULO_LABEL[modulo] || modulo);
+    const btn = document.getElementById('btnExportGeneral');
+    if (btn) btn.title = 'Exportar solo ' + (MODULO_LABEL[modulo] || modulo) + ' a Excel';
+}
 
 // ══════════════════════════════════════════
 //  1. CARGAR RESUMEN / KPIs
@@ -329,6 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cargar primer módulo
     cargarModulo('voluntarios');
+    actualizarBtnExport('voluntarios');
 
     // Tabs
     document.getElementById('modulosTabs')?.addEventListener('click', (e) => {
@@ -338,15 +357,22 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.classList.add('active');
         const modulo = tab.dataset.modulo;
         document.getElementById('searchTable').value = '';
+        actualizarBtnExport(modulo);
         cargarModulo(modulo);
     });
 
-    // Export general
+    // Exportar módulo activo (botón principal del header)
     document.getElementById('btnExportGeneral')?.addEventListener('click', () => {
+        const accion = EXPORT_MAP[moduloActual];
+        if (accion) descargarExcel(accion);
+    });
+
+    // Exportar reporte general completo
+    document.getElementById('btnExportTodo')?.addEventListener('click', () => {
         descargarExcel('exportar_general');
     });
 
-    // Export módulo
+    // Export módulo (botón de toolbar, redundante pero útil)
     document.getElementById('btnExportModulo')?.addEventListener('click', () => {
         const accion = EXPORT_MAP[moduloActual];
         if (accion) descargarExcel(accion);

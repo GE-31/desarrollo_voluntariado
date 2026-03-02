@@ -70,6 +70,7 @@
                     <label for="filtroEstado">Estado</label>
                     <select id="filtroEstado" onchange="filtrarSalidas()">
                         <option value="">Todos</option>
+                        <option value="PENDIENTE">Pendiente</option>
                         <option value="CONFIRMADO">Confirmado</option>
                         <option value="ANULADO">Anulado</option>
                     </select>
@@ -86,6 +87,7 @@
                         <th>Donacion Origen</th>
                         <th>Campana Destino</th>
                         <th>Descripcion</th>
+                        <th>Boleta</th>
                         <th>Registrado por</th>
                         <th>Fecha</th>
                         <th>Estado</th>
@@ -123,6 +125,14 @@
                         <td>
                             <span class="desc-text" th:text="${s.descripcion != null ? s.descripcion : '-'}"></span>
                         </td>
+                        <!-- Boleta -->
+                        <td>
+                            <span th:if="${s.comprobante != null}" class="comprobante-badge">
+                                <i class="fa-solid fa-receipt"></i>
+                                <span th:text="${s.comprobante}"></span>
+                            </span>
+                            <span th:if="${s.comprobante == null}" style="color:#94a3b8; font-size:0.8rem">Pendiente</span>
+                        </td>
                         <!-- Registrado por -->
                         <td th:text="${s.usuarioRegistro}"></td>
                         <!-- Fecha -->
@@ -153,7 +163,7 @@
                     </tr>
                     </th:block>
                     <tr th:if="${salidas == null or salidas.empty}">
-                        <td colspan="8" class="no-data">
+                        <td colspan="9" class="no-data">
                             <i class="fa-solid fa-inbox" style="font-size:2rem; margin-bottom:8px; display:block; color:#cbd5e1;"></i>
                             No hay salidas de donaciones registradas
                         </td>
